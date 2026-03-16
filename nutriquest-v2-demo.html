@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NutriQuest — PWA Demo v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #0a0d12;
+  --sf: #151b27;
+  --sf2: #1c2333;
+  --sf3: #242d3d;
+  --mint: #34d399;
+  --mint-d: rgba(52,211,153,0.1);
+  --mint-g: rgba(52,211,153,0.3);
+  --amber: #fbbf24;
+  --amber-d: rgba(251,191,36,0.1);
+  --coral: #fb7185;
+  --coral-d: rgba(251,113,133,0.1);
+  --sky: #38bdf8;
+  --sky-d: rgba(56,189,248,0.1);
+  --violet: #a78bfa;
+  --violet-d: rgba(167,139,250,0.1);
+  --tx: #e8ecf4;
+  --tx2: #8894aa;
+  --tx3: #505d74;
+  --br: #1e2a3a;
+  --r: 14px;
+  --rs: 10px;
+  --f: 'Outfit', sans-serif;
+  --m: 'Space Mono', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--f);background:var(--bg2);color:var(--tx);display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;}
+
+.phone{width:393px;height:852px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 0 0 2px #222d40,0 0 0 5px #111722,0 30px 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.03);}
+
+/* Notch */
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;z-index:50;}
+.status{height:56px;padding:16px 24px 0;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;flex-shrink:0;z-index:10;}
+.status-r{font-size:12px;color:var(--tx2);display:flex;gap:8px;align-items:center;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);}
+
+.content{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.content::-webkit-scrollbar{display:none;}
+
+/* Bottom nav */
+.bnav{height:84px;background:var(--sf);border-top:1px solid var(--br);display:flex;align-items:flex-start;padding-top:8px;flex-shrink:0;position:relative;z-index:20;}
+.bnav::before{content:'';position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:60px;height:2px;background:var(--mint);border-radius:1px;opacity:0;}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--tx3);font-family:var(--f);font-size:10px;font-weight:600;padding:6px 0;transition:.2s;}
+.ni.a{color:var(--mint);}
+.ni-i{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:17px;border-radius:8px;transition:.2s;}
+.ni.a .ni-i{background:var(--mint-d);}
+.ni-log{margin-top:-22px;}
+.log-b{width:54px;height:54px;border-radius:50%;background:linear-gradient(140deg,var(--mint),#06b6d4);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--bg);cursor:pointer;box-shadow:0 4px 24px var(--mint-g);transition:.15s;}
+.log-b:active{transform:scale(.92);}
+
+/* Cards & layout */
+.card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:16px;margin:0 16px 10px;transition:.2s;}
+.card:active{transform:scale(.985);}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--tx3);margin-bottom:8px;font-family:var(--m);}
+.sec-h{display:flex;justify-content:space-between;align-items:center;padding:4px 20px;margin-bottom:6px;}
+.sec-t{font-size:15px;font-weight:700;}
+.sec-l{font-size:11px;color:var(--mint);font-weight:600;cursor:pointer;}
+.pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.3px;}
+
+/* ---- DASHBOARD ---- */
+.d-head{padding:4px 20px 14px;}
+.d-greet{font-size:13px;color:var(--tx2);}
+.d-name{font-size:26px;font-weight:800;letter-spacing:-.7px;line-height:1.2;}
+
+.streak{margin:0 16px 12px;background:linear-gradient(135deg,#1a1200,#231900);border:1px solid rgba(251,191,36,.15);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.s-fire{font-size:30px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.s-days{font-size:22px;font-weight:800;color:var(--amber);}
+.s-sub{font-size:11px;color:var(--tx2);}
+.s-mult{background:var(--amber-d);color:var(--amber);font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;margin-left:auto;white-space:nowrap;}
+
+/* Calorie ring */
+.cal-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:20px;margin:0 16px 12px;text-align:center;}
+.ring-w{position:relative;width:170px;height:170px;margin:0 auto 12px;}
+.ring-w svg{width:100%;height:100%;transform:rotate(-90deg);}
+.r-bg{fill:none;stroke:var(--sf3);stroke-width:10;}
+.r-f{fill:none;stroke-width:10;stroke-linecap:round;}
+.r-cal{stroke:var(--mint);stroke-dasharray:452;stroke-dashoffset:452;transition:stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1);}
+.r-c{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.r-n{font-size:34px;font-weight:900;letter-spacing:-1.5px;}
+.r-l{font-size:11px;color:var(--tx2);margin-top:-2px;}
+.r-rem{font-size:12px;color:var(--tx2);margin-top:4px;}
+
+.macros{display:flex;gap:8px;margin-top:14px;}
+.mac{flex:1;background:var(--sf2);border-radius:var(--rs);padding:10px;}
+.mac-h{display:flex;justify-content:space-between;font-size:10px;color:var(--tx2);margin-bottom:5px;}
+.mac-h span:last-child{font-family:var(--m);font-size:10px;}
+.mac-bar{height:5px;border-radius:3px;background:var(--sf3);overflow:hidden;}
+.mac-fill{height:100%;border-radius:3px;transition:width 1.2s ease;}
+
+/* Meals */
+.meal{margin:0 16px 8px;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.2s;}
+.meal:active{border-color:var(--mint);background:var(--sf2);}
+.meal-e{font-size:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--sf2);border-radius:11px;}
+.meal-n{font-size:13px;font-weight:700;}
+.meal-d{font-size:11px;color:var(--tx2);}
+.meal-k{font-size:14px;font-weight:800;color:var(--mint);text-align:right;}
+.meal-ku{font-size:10px;color:var(--tx2);font-weight:500;}
+
+/* Challenge */
+.chal{margin:6px 16px 12px;background:linear-gradient(135deg,rgba(52,211,153,.05),rgba(56,189,248,.05));border:1px solid rgba(52,211,153,.12);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.chal-i{font-size:26px;}
+.chal-t{font-size:12px;font-weight:700;}
+.chal-d{font-size:11px;color:var(--tx2);margin-top:1px;}
+.chal-bar{margin-top:6px;height:5px;border-radius:3px;background:var(--sf3);overflow:hidden;}
+.chal-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--mint),var(--sky));}
+.chal-xp{font-size:12px;font-weight:700;color:var(--amber);white-space:nowrap;}
+
+/* Why card */
+.why{margin:4px 16px 12px;background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(167,139,250,.04));border:1px solid rgba(56,189,248,.12);border-radius:var(--r);padding:14px 16px;}
+.why-t{font-size:12px;font-weight:700;color:var(--sky);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.why-p{font-size:11px;color:var(--tx2);line-height:1.65;}
+.why-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:5px;background:var(--violet-d);color:var(--violet);margin-top:8px;}
+
+/* XP */
+.xp{margin:0 16px 16px;}
+.xp-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;}
+.xp-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.xp-lv{font-size:13px;font-weight:700;}
+.xp-am{font-size:11px;color:var(--tx2);font-family:var(--m);}
+.xp-bar{height:7px;border-radius:4px;background:var(--sf3);overflow:hidden;}
+.xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--mint),#06b6d4);transition:width 1.5s ease;}
+
+/* ---- LOG SCREEN ---- */
+.log-s{padding:16px;}
+.log-t{font-size:22px;font-weight:800;margin-bottom:14px;letter-spacing:-.5px;}
+.search{display:flex;align-items:center;background:var(--sf);border:1px solid var(--br);border-radius:12px;padding:12px 14px;gap:10px;margin-bottom:14px;transition:.2s;}
+.search:focus-within{border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-d);}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--tx);font-family:var(--f);font-size:14px;}
+.search input::placeholder{color:var(--tx3);}
+
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.ab{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.2s;color:var(--tx);font-family:var(--f);}
+.ab:active{border-color:var(--mint);background:var(--sf2);transform:scale(.97);}
+.ab-e{font-size:26px;}
+.ab-l{font-size:12px;font-weight:700;}
+.ab-d{font-size:10px;color:var(--tx2);text-align:center;}
+.ab-api{font-size:8px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:2px;}
+
+.rlbl{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;font-family:var(--m);}
+.fr{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);margin-bottom:7px;cursor:pointer;transition:.2s;}
+.fr:active{border-color:var(--mint);}
+.fr-i{font-size:22px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--sf2);border-radius:9px;}
+.fr-n{font-size:13px;font-weight:600;}
+.fr-sv{font-size:10px;color:var(--tx2);}
+.fr-k{margin-left:auto;font-size:12px;font-weight:700;color:var(--mint);background:var(--mint-d);padding:4px 9px;border-radius:7px;}
+.fr-src{font-size:8px;color:var(--tx3);font-family:var(--m);margin-left:auto;text-align:right;}
+
+/* ---- PLAN SCREEN ---- */
+.plan-s{padding:16px;}
+.plan-t{font-size:22px;font-weight:800;margin-bottom:2px;letter-spacing:-.5px;}
+.plan-sub{font-size:12px;color:var(--tx2);margin-bottom:14px;}
+.dtabs{display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;}
+.dtab{padding:7px 13px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:var(--sf);border:1px solid var(--br);color:var(--tx2);font-family:var(--f);transition:.2s;}
+.dtab.a{background:var(--mint-d);border-color:var(--mint);color:var(--mint);}
+
+.pmg{margin-bottom:14px;}
+.pml{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:5px;font-family:var(--m);}
+.pmi{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);margin-bottom:5px;}
+.pmi-n{font-size:13px;font-weight:600;}
+.pmi-m{font-size:10px;color:var(--tx2);font-family:var(--m);margin-top:1px;}
+.sw-btn{font-size:10px;padding:5px 9px;border-radius:6px;background:var(--sf2);border:1px solid var(--br);color:var(--tx2);cursor:pointer;font-family:var(--f);font-weight:600;margin-left:auto;transition:.2s;white-space:nowrap;}
+.sw-btn:active{border-color:var(--amber);color:var(--amber);}
+
+.tot-card{background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);padding:14px;text-align:center;margin-top:6px;margin-bottom:10px;}
+.groc-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--mint-d);border:1px solid rgba(52,211,153,.18);border-radius:var(--r);color:var(--mint);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--f);transition:.2s;}
+.groc-btn:active{background:rgba(52,211,153,.16);}
+
+/* ---- LEARN ---- */
+.learn-s{padding:16px;}
+.learn-t{font-size:22px;font-weight:800;margin-bottom:14px;letter-spacing:-.5px;}
+.quiz-b{background:linear-gradient(135deg,rgba(167,139,250,.08),rgba(56,189,248,.06));border:1px solid rgba(167,139,250,.15);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:14px;}
+.quiz-t{font-size:15px;font-weight:800;margin-bottom:3px;}
+.quiz-d{font-size:11px;color:var(--tx2);margin-bottom:10px;}
+.quiz-go{display:inline-block;padding:9px 22px;background:linear-gradient(135deg,var(--violet),var(--sky));border:none;border-radius:9px;color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--f);}
+
+.lc{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;position:relative;overflow:hidden;transition:.2s;}
+.lc:active{border-color:var(--sky);}
+.lc-badge{position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;}
+.lc-e{font-size:26px;margin-bottom:6px;}
+.lc-t{font-size:14px;font-weight:700;margin-bottom:3px;}
+.lc-d{font-size:11px;color:var(--tx2);line-height:1.5;}
+.lc-xp{display:flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;font-weight:700;color:var(--amber);}
+
+/* ---- PROFILE ---- */
+.prof-s{padding:16px;}
+.prof-h{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--mint),var(--sky));display:flex;align-items:center;justify-content:center;font-size:26px;border:3px solid var(--sf);box-shadow:0 0 0 2px var(--mint);}
+.prof-n{font-size:19px;font-weight:800;}
+.prof-ti{font-size:12px;color:var(--mint);font-weight:600;}
+.prof-j{font-size:10px;color:var(--tx3);}
+
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px;}
+.sc{background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);padding:12px 10px;text-align:center;}
+.sc-v{font-size:20px;font-weight:800;}
+.sc-l{font-size:10px;color:var(--tx2);margin-top:1px;}
+
+.badges-g{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.bi{flex:0 0 auto;width:68px;text-align:center;}
+.bi-i{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;border:2px solid var(--br);}
+.bi-i.earned{border-color:var(--amber);box-shadow:0 0 10px rgba(251,191,36,.15);}
+.bi-i.locked{opacity:.3;filter:grayscale(1);}
+.bi-n{font-size:9px;color:var(--tx2);font-weight:600;}
+
+.si{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);margin-bottom:5px;font-size:13px;cursor:pointer;}
+.si:active{border-color:var(--mint);}
+.si-v{font-size:12px;color:var(--tx2);}
+.tgl{width:40px;height:24px;border-radius:12px;position:relative;cursor:pointer;}
+.tgl.on{background:var(--mint);}
+.tgl.off{background:var(--sf3);}
+.tgl::after{content:'';width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;transition:.2s;}
+.tgl.on::after{left:19px;}
+.tgl.off::after{left:3px;}
+
+.slbl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1.2px;margin:12px 0 6px;font-family:var(--m);}
+
+/* Notif popup */
+.notif{position:absolute;top:58px;left:16px;right:16px;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;display:none;align-items:center;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.6);z-index:100;animation:sld .35s ease;}
+@keyframes sld{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
+.notif-i{font-size:22px;}
+.notif-t{font-size:12px;font-weight:700;}
+.notif-b{font-size:11px;color:var(--tx2);}
+.notif-tm{font-size:9px;color:var(--tx3);}
+.notif-x{background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;padding:4px;}
+
+/* API indicator */
+.api-tag{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:700;padding:2px 7px;border-radius:4px;font-family:var(--m);}
+
+/* Animations */
+@keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.content>*{animation:fi .25s ease;}
+
+/* Water card */
+.water-card{margin:0 16px 12px;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.water-drops{display:flex;gap:3px;}
+.drop{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.drop.full{background:var(--sky-d);color:var(--sky);}
+.drop.empty{background:var(--sf2);color:var(--tx3);}
+.water-info{flex:1;}
+.water-label{font-size:12px;font-weight:700;}
+.water-sub{font-size:10px;color:var(--tx2);}
+.water-add{padding:6px 14px;border-radius:8px;background:var(--sky-d);border:1px solid rgba(56,189,248,.15);color:var(--sky);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--f);}
+</style>
+</head>
+<body>
+<div class="phone" id="app">
+  <div class="notch"></div>
+  <div class="status">
+    <span style="font-weight:800;">9:41</span>
+    <div class="status-r"><div class="status-dot"></div><span>LTE</span><span>86%</span></div>
+  </div>
+  <div class="notif" id="notif">
+    <div class="notif-i">🍽️</div>
+    <div style="flex:1"><div class="notif-t">Lunch time!</div><div class="notif-b">Log your meal to keep your 12-day streak</div></div>
+    <div class="notif-tm">now</div>
+    <button class="notif-x" onclick="document.getElementById('notif').style.display='none'">✕</button>
+  </div>
+  <div class="content" id="sc"></div>
+  <div class="bnav">
+    <button class="ni a" data-s="dash" onclick="go('dash')"><div class="ni-i">🏠</div><span>Home</span></button>
+    <button class="ni" data-s="plan" onclick="go('plan')"><div class="ni-i">📋</div><span>Plan</span></button>
+    <button class="ni ni-log" data-s="log" onclick="go('log')"><div class="log-b">+</div><span style="margin-top:3px">Log</span></button>
+    <button class="ni" data-s="learn" onclick="go('learn')"><div class="ni-i">📚</div><span>Learn</span></button>
+    <button class="ni" data-s="prof" onclick="go('prof')"><div class="ni-i">👤</div><span>Profile</span></button>
+  </div>
+</div>
+<script>
+let cur='dash';
+function go(s){
+  cur=s;
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('a',n.dataset.s===s));
+  document.getElementById('sc').innerHTML=S[s]();
+  document.getElementById('sc').scrollTop=0;
+  if(s==='dash')setTimeout(()=>{const r=document.querySelector('.r-cal');if(r)r.style.strokeDashoffset='150';},80);
+}
+function hn(){const n=document.getElementById('notif');n.style.display='flex';setTimeout(()=>n.style.display='none',4500);}
+
+const S={
+dash:()=>`
+<div class="d-head">
+  <div class="d-greet">Good morning</div>
+  <div class="d-name">Alex 👋</div>
+</div>
+<div class="streak">
+  <div class="s-fire">🔥</div>
+  <div style="flex:1"><div class="s-days">12 Day Streak</div><div class="s-sub">18 more days for 5× XP multiplier</div></div>
+  <div class="s-mult">2× XP</div>
+</div>
+<div class="cal-card">
+  <div class="ring-w">
+    <svg viewBox="0 0 170 170"><circle class="r-bg" cx="85" cy="85" r="72"/><circle class="r-f r-cal" cx="85" cy="85" r="72" stroke-dasharray="452" stroke-dashoffset="452"/></svg>
+    <div class="r-c"><div class="r-n">1,540</div><div class="r-l">of 2,200 kcal</div></div>
+  </div>
+  <div class="r-rem">660 remaining today</div>
+  <div class="macros">
+    <div class="mac"><div class="mac-h"><span>Protein</span><span>98/155g</span></div><div class="mac-bar"><div class="mac-fill" style="width:63%;background:var(--sky)"></div></div></div>
+    <div class="mac"><div class="mac-h"><span>Carbs</span><span>180/248g</span></div><div class="mac-bar"><div class="mac-fill" style="width:73%;background:var(--amber)"></div></div></div>
+    <div class="mac"><div class="mac-h"><span>Fat</span><span>48/73g</span></div><div class="mac-bar"><div class="mac-fill" style="width:66%;background:var(--violet)"></div></div></div>
+  </div>
+</div>
+<div class="chal">
+  <div class="chal-i">🎯</div>
+  <div style="flex:1"><div class="chal-t">Daily Challenge</div><div class="chal-d">Eat 30g fiber today</div><div class="chal-bar"><div class="chal-fill" style="width:60%"></div></div></div>
+  <div class="chal-xp">+150 XP</div>
+</div>
+<div class="water-card">
+  <div class="water-drops">${'💧'.repeat(5).split('').map((_,i)=>`<div class="drop ${i<3?'full':'empty'}">${i<3?'💧':'○'}</div>`).join('')}</div>
+  <div class="water-info"><div class="water-label">Water: 3 of 8 glasses</div><div class="water-sub">Stay hydrated for better metabolism</div></div>
+  <button class="water-add">+ Add</button>
+</div>
+<div class="sec-h"><div class="sec-t">Today's Meals</div><div class="sec-l">View All →</div></div>
+<div class="meal" onclick="go('log')"><div class="meal-e">🥣</div><div style="flex:1"><div class="meal-n">Breakfast</div><div class="meal-d">Oatmeal, banana, almonds</div></div><div><div class="meal-k">420</div><div class="meal-ku">kcal</div></div></div>
+<div class="meal" onclick="go('log')"><div class="meal-e">🥗</div><div style="flex:1"><div class="meal-n">Lunch</div><div class="meal-d">Grilled chicken salad, quinoa</div></div><div><div class="meal-k">580</div><div class="meal-ku">kcal</div></div></div>
+<div class="meal" onclick="go('log')"><div class="meal-e">🍎</div><div style="flex:1"><div class="meal-n">Snack</div><div class="meal-d">Apple, peanut butter</div></div><div><div class="meal-k">240</div><div class="meal-ku">kcal</div></div></div>
+<div class="meal" style="border-style:dashed;opacity:.55;" onclick="go('log')"><div class="meal-e">🌙</div><div style="flex:1"><div class="meal-n">Dinner</div><div class="meal-d" style="color:var(--mint)">Tap to log →</div></div><div><div class="meal-k" style="color:var(--tx3)">—</div></div></div>
+<div class="why">
+  <div class="why-t">💡 Why this food?</div>
+  <div class="why-p">Your lunch quinoa provides all 9 essential amino acids — one of the few plant-based complete proteins. Combined with chicken, you're hitting 48g protein in one meal, directly supporting your muscle recovery goal.</div>
+  <div class="why-badge">✨ Powered by Claude AI</div>
+</div>
+<div class="xp"><div class="xp-card">
+  <div class="xp-h"><div class="xp-lv">Level <span style="color:var(--mint)">14</span> — Nutrition Scout</div><div class="xp-am">2,340 / 3,000 XP</div></div>
+  <div class="xp-bar"><div class="xp-fill" style="width:78%"></div></div>
+</div></div>
+`,
+
+log:()=>`
+<div class="log-s">
+  <div class="log-t">Log a Meal</div>
+  <div class="search"><span style="font-size:16px">🔍</span><input type="text" placeholder="Search food or type a meal..."/></div>
+  <div class="ag">
+    <button class="ab" onclick="alert('Opens camera → sends photo to Edamam Vision API → returns identified foods with nutrition data for 160+ nutrients')">
+      <div class="ab-e">📸</div><div class="ab-l">Take Photo</div><div class="ab-d">AI identifies your food</div>
+      <div class="api-tag" style="background:var(--sky-d);color:var(--sky)">Edamam Vision</div>
+    </button>
+    <button class="ab" onclick="alert('Opens browser camera via html5-qrcode library → scans barcode → looks up in FatSecret (2.3M foods) → falls back to Open Food Facts (2.5M products)')">
+      <div class="ab-e">📊</div><div class="ab-l">Scan Barcode</div><div class="ab-d">Packaged food lookup</div>
+      <div class="api-tag" style="background:var(--mint-d);color:var(--mint)">FatSecret + OFF</div>
+    </button>
+    <button class="ab" onclick="alert('Uses browser SpeechRecognition API → converts speech to text → sends to Edamam NLP: \\'2 eggs and toast\\' → returns full nutrition breakdown')">
+      <div class="ab-e">🎤</div><div class="ab-l">Voice Log</div><div class="ab-d">"Two eggs and toast"</div>
+      <div class="api-tag" style="background:var(--sky-d);color:var(--sky)">Edamam NLP</div>
+    </button>
+    <button class="ab" onclick="alert('Manual text search powered by FatSecret API with autocomplete — 2.3M+ verified foods across 56 countries, 24 languages')">
+      <div class="ab-e">✏️</div><div class="ab-l">Manual Entry</div><div class="ab-d">Search 2.3M+ foods</div>
+      <div class="api-tag" style="background:var(--mint-d);color:var(--mint)">FatSecret DB</div>
+    </button>
+  </div>
+  <div class="rlbl">Recent Foods</div>
+  <div class="fr"><div class="fr-i">🍳</div><div><div class="fr-n">Scrambled Eggs (2 large)</div><div class="fr-sv">182g · 1 serving</div></div><div class="fr-k">182</div></div>
+  <div class="fr"><div class="fr-i">🍞</div><div><div class="fr-n">Whole Wheat Toast</div><div class="fr-sv">30g · 1 slice</div></div><div class="fr-k">69</div></div>
+  <div class="fr"><div class="fr-i">🥑</div><div><div class="fr-n">Avocado</div><div class="fr-sv">50g · ¼ medium</div></div><div class="fr-k">80</div></div>
+  <div class="fr"><div class="fr-i">🍗</div><div><div class="fr-n">Grilled Chicken Breast</div><div class="fr-sv">150g · 1 breast</div></div><div class="fr-k">248</div></div>
+  <div class="fr"><div class="fr-i">🍌</div><div><div class="fr-n">Banana</div><div class="fr-sv">118g · 1 medium</div></div><div class="fr-k">105</div></div>
+  <div class="fr"><div class="fr-i">🥜</div><div><div class="fr-n">Peanut Butter</div><div class="fr-sv">32g · 2 tbsp</div></div><div class="fr-k">190</div></div>
+</div>
+`,
+
+plan:()=>`
+<div class="plan-s">
+  <div class="plan-t">Meal Plan</div>
+  <div class="plan-sub">Week of Mar 15 · Cutting (−500 deficit) · <span class="api-tag" style="background:var(--amber-d);color:var(--amber)">Spoonacular API</span></div>
+  <div class="dtabs"><div class="dtab a">Mon</div><div class="dtab">Tue</div><div class="dtab">Wed</div><div class="dtab">Thu</div><div class="dtab">Fri</div><div class="dtab">Sat</div><div class="dtab">Sun</div></div>
+  <div class="pmg"><div class="pml">☀️ Breakfast · 420 kcal</div><div class="pmi"><div class="fr-i">🥣</div><div style="flex:1"><div class="pmi-n">Overnight Oats with Berries</div><div class="pmi-m">P:18g · C:52g · F:12g</div></div><button class="sw-btn">Swap</button></div></div>
+  <div class="pmg"><div class="pml">🌤️ Lunch · 580 kcal</div><div class="pmi"><div class="fr-i">🥗</div><div style="flex:1"><div class="pmi-n">Grilled Chicken Quinoa Bowl</div><div class="pmi-m">P:42g · C:58g · F:16g</div></div><button class="sw-btn">Swap</button></div></div>
+  <div class="pmg"><div class="pml">🍎 Snack · 200 kcal</div><div class="pmi"><div class="fr-i">🍏</div><div style="flex:1"><div class="pmi-n">Apple + Almond Butter</div><div class="pmi-m">P:5g · C:28g · F:10g</div></div><button class="sw-btn">Swap</button></div></div>
+  <div class="pmg"><div class="pml">🌙 Dinner · 620 kcal</div><div class="pmi"><div class="fr-i">🐟</div><div style="flex:1"><div class="pmi-n">Salmon with Roasted Vegetables</div><div class="pmi-m">P:38g · C:42g · F:28g</div></div><button class="sw-btn">Swap</button></div></div>
+  <div class="tot-card"><div style="font-size:12px;font-weight:700">Daily Total</div><div style="font-size:22px;font-weight:900;color:var(--mint);margin:3px 0">1,820 kcal</div><div style="font-size:11px;color:var(--tx2);font-family:var(--m)">P:103g · C:180g · F:66g</div></div>
+  <button class="groc-btn">🛒 Generate Grocery List</button>
+  <div style="margin-top:10px;text-align:center;font-size:9px;color:var(--tx3)">Recipes by Spoonacular · Nutrition by Edamam · Verified with USDA</div>
+</div>
+`,
+
+learn:()=>`
+<div class="learn-s">
+  <div class="learn-t">Learn</div>
+  <div class="quiz-b"><div style="font-size:26px;margin-bottom:5px">🧠</div><div class="quiz-t">Nutrition IQ Quiz</div><div class="quiz-d">Test your knowledge — earn 200 XP!</div><button class="quiz-go">Start Quiz →</button></div>
+  <div class="rlbl">Micro-Lessons</div>
+  <div class="lc"><div class="lc-badge" style="background:var(--mint-d);color:var(--mint)">Completed ✓</div><div class="lc-e">🥚</div><div class="lc-t">Why Protein Matters</div><div class="lc-d">How protein builds muscle, repairs tissue, and keeps you full between meals.</div><div class="lc-xp">⭐ 100 XP earned</div></div>
+  <div class="lc"><div class="lc-badge" style="background:var(--sky-d);color:var(--sky)">2 min</div><div class="lc-e">🥦</div><div class="lc-t">Fiber: Your Gut's Best Friend</div><div class="lc-d">Why fiber keeps your digestion healthy and controls blood sugar.</div><div class="lc-xp">⭐ +100 XP</div></div>
+  <div class="lc"><div class="lc-badge" style="background:var(--amber-d);color:var(--amber)">New</div><div class="lc-e">💧</div><div class="lc-t">The Hydration Equation</div><div class="lc-d">How water affects your energy, metabolism, and appetite.</div><div class="lc-xp">⭐ +100 XP</div></div>
+  <div class="lc" style="opacity:.45"><div class="lc-badge" style="background:var(--sf3);color:var(--tx3)">🔒 Lvl 18</div><div class="lc-e">🧪</div><div class="lc-t">Micronutrients Deep Dive</div><div class="lc-d">Unlock at Level 18 — vitamins, minerals, and why they're essential.</div><div class="lc-xp" style="color:var(--tx3)">🔒 +200 XP</div></div>
+  <div class="rlbl" style="margin-top:12px">Myth Busters</div>
+  <div class="lc"><div class="lc-e">🚫</div><div class="lc-t">"Eating fat makes you fat"</div><div class="lc-d">Healthy fats are essential for hormones and brain function.</div><div class="lc-xp">⭐ +75 XP</div></div>
+  <div class="lc"><div class="lc-e">⏰</div><div class="lc-t">"Don't eat after 8pm"</div><div class="lc-d">Total calories matter more than timing.</div><div class="lc-xp">⭐ +75 XP</div></div>
+  <div style="text-align:center;margin-top:8px;font-size:9px;color:var(--tx3)">Content generated by Claude AI · Verified by nutrition experts</div>
+</div>
+`,
+
+prof:()=>`
+<div class="prof-s">
+  <div class="prof-h"><div class="avatar">🧑‍🚀</div><div><div class="prof-n">Alex Johnson</div><div class="prof-ti">Level 14 — Nutrition Scout</div><div class="prof-j">Joined Feb 2026</div></div></div>
+  <div class="sg">
+    <div class="sc"><div class="sc-v" style="color:var(--amber)">12</div><div class="sc-l">Day Streak</div></div>
+    <div class="sc"><div class="sc-v" style="color:var(--mint)">2,340</div><div class="sc-l">Total XP</div></div>
+    <div class="sc"><div class="sc-v" style="color:var(--sky)">8</div><div class="sc-l">Badges</div></div>
+  </div>
+  <div class="xp-card" style="margin-bottom:14px"><div class="xp-h"><div class="xp-lv">Level <span style="color:var(--mint)">14</span> → 15</div><div class="xp-am">2,340 / 3,000</div></div><div class="xp-bar"><div class="xp-fill" style="width:78%"></div></div></div>
+  <div class="slbl">Achievements</div>
+  <div class="badges-g">
+    <div class="bi"><div class="bi-i earned" style="background:var(--amber-d)">🔥</div><div class="bi-n">7-Day Streak</div></div>
+    <div class="bi"><div class="bi-i earned" style="background:var(--mint-d)">🥗</div><div class="bi-n">First Log</div></div>
+    <div class="bi"><div class="bi-i earned" style="background:var(--sky-d)">📸</div><div class="bi-n">Photo Pro</div></div>
+    <div class="bi"><div class="bi-i earned" style="background:var(--violet-d)">🧠</div><div class="bi-n">Quiz Ace</div></div>
+    <div class="bi"><div class="bi-i earned" style="background:var(--amber-d)">💪</div><div class="bi-n">Macro Master</div></div>
+    <div class="bi"><div class="bi-i locked" style="background:var(--sf2)">🏆</div><div class="bi-n">30-Day Streak</div></div>
+    <div class="bi"><div class="bi-i locked" style="background:var(--sf2)">👑</div><div class="bi-n">Level 25</div></div>
+  </div>
+  <div class="slbl">Body Stats</div>
+  <div class="si"><span>Height</span><span class="si-v">178 cm</span></div>
+  <div class="si"><span>Weight</span><span class="si-v">82 kg</span></div>
+  <div class="si"><span>Goal</span><span class="si-v" style="color:var(--mint)">Cut (−500 kcal)</span></div>
+  <div class="si"><span>Diet</span><span class="si-v">Standard</span></div>
+  <div class="slbl">Notifications</div>
+  <div class="si"><span>Push Notifications</span><div class="tgl on"></div></div>
+  <div class="si"><span>Breakfast</span><span class="si-v">8:00 AM</span></div>
+  <div class="si"><span>Lunch</span><span class="si-v">12:30 PM</span></div>
+  <div class="si"><span>Dinner</span><span class="si-v">7:00 PM</span></div>
+  <div class="si"><span>Evening Check-in</span><div class="tgl on"></div></div>
+  <div class="si"><span>Email Fallback (iOS)</span><div class="tgl off"></div></div>
+  <div class="slbl">API Stack</div>
+  <div class="si"><span>Food Recognition</span><span class="api-tag" style="background:var(--sky-d);color:var(--sky)">Edamam Vision</span></div>
+  <div class="si"><span>Food Database</span><span class="api-tag" style="background:var(--mint-d);color:var(--mint)">FatSecret 2.3M</span></div>
+  <div class="si"><span>Recipes & Plans</span><span class="api-tag" style="background:var(--amber-d);color:var(--amber)">Spoonacular</span></div>
+  <div class="si"><span>AI Coach</span><span class="api-tag" style="background:var(--violet-d);color:var(--violet)">Claude API</span></div>
+  <div class="si"><span>Barcode Fallback</span><span class="api-tag" style="background:var(--coral-d);color:var(--coral)">Open Food Facts</span></div>
+  <div class="slbl">Account</div>
+  <div class="si"><span>Upgrade to Premium</span><span class="si-v" style="color:var(--amber)">$9.99/mo →</span></div>
+  <div class="si"><span>Leaderboard</span><span class="si-v">#47 Global →</span></div>
+  <div class="si"><span style="color:var(--coral)">Log Out</span><span></span></div>
+  <div style="text-align:center;margin-top:14px;font-size:9px;color:var(--tx3)">NutriQuest v1.0 · PWA · MVP API Cost: ~$0–20/mo</div>
+</div>
+`
+};
+
+go('dash');
+setTimeout(hn,2500);
+</script>
+</body>
+</html>
