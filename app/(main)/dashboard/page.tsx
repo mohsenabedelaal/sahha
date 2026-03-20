@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { profile, setProfile } = useUserStore();
-  const { totals } = useMealStore();
+  const { totals, setMeals } = useMealStore();
   const { xp, level, streak_days, best_streak, setFromServer } = useGameStore();
   const [loaded, setLoaded] = useState(false);
 
@@ -52,11 +52,40 @@ export default function DashboardPage() {
         best_streak: user.best_streak,
       });
 
+      // Hydrate mealStore with today's logged meals
+      const today = new Date().toISOString().split("T")[0];
+      const logsRes = await fetch(`/api/meals/log?date=${today}`);
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        const meals = (logsData.logs ?? []).map((l: {
+          id: number;
+          food_name: string | null;
+          meal_type: string;
+          calories: number;
+          protein_g: number;
+          carbs_g: number;
+          fat_g: number;
+          servings: number;
+          logged_at: string;
+        }) => ({
+          id: String(l.id),
+          name: l.food_name ?? "Unknown",
+          meal_type: l.meal_type,
+          calories: l.calories,
+          protein_g: l.protein_g,
+          carbs_g: l.carbs_g,
+          fat_g: l.fat_g,
+          servings: l.servings,
+          logged_at: l.logged_at,
+        }));
+        setMeals(meals);
+      }
+
       setLoaded(true);
     }
 
     if (session?.user) loadUser();
-  }, [session, router, setProfile, setFromServer]);
+  }, [session, router, setProfile, setFromServer, setMeals]);
 
   if (!loaded) {
     return (
