@@ -22,7 +22,7 @@ async function getAccessToken(): Promise<string> {
       Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: "grant_type=client_credentials&scope=basic barcode",
+    body: new URLSearchParams({ grant_type: "client_credentials", scope: "basic" }).toString(),
   });
 
   if (!res.ok) throw new Error(`FatSecret auth failed: ${res.status}`);

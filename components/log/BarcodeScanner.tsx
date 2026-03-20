@@ -88,12 +88,24 @@ export function BarcodeScanner({ onResult }: BarcodeScannerProps) {
       <button
         onClick={startScanning}
         disabled={loading}
-        className="w-full bg-surface border border-border rounded-[14px] py-4 px-3 flex flex-col items-center gap-1.5 cursor-pointer transition-all active:border-mint active:bg-surface-2 active:scale-[0.97] disabled:opacity-50"
+        className="w-full bg-surface border border-border rounded-[14px] py-4 px-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:border-amber/50 active:bg-surface-2 active:scale-[0.97] disabled:opacity-50"
       >
-        <span className="text-[26px]">{loading ? "⏳" : "📊"}</span>
-        <span className="text-[12px] font-bold">{loading ? "Looking up..." : "Scan Barcode"}</span>
-        <span className="text-[10px] text-tx2 text-center">Packaged food lookup</span>
-        <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded mt-0.5 bg-mint-d text-mint">
+        <div className="w-10 h-10 rounded-xl bg-amber-d flex items-center justify-center">
+          {loading ? (
+            <svg className="animate-spin text-amber" width="18" height="18" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+            </svg>
+          ) : (
+            <svg className="text-amber" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+            </svg>
+          )}
+        </div>
+        <span className="text-[12px] font-bold">{loading ? "Looking up..." : "Barcode"}</span>
+        <span className="text-[9px] text-tx3 text-center leading-tight">Scan packaged<br />food</span>
+        <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded bg-amber-d text-amber">
           FatSecret
         </span>
       </button>
