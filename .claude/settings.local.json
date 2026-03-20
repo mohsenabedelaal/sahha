@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:/Users/USER/Desktop/personal/sahha\" && npm install web-push 2>&1 | tail -3)"
+    ]
+  }
+}

@@ -39,6 +39,9 @@ export const foodItems = sqliteTable("food_items", {
   category: text("category"),
   is_local: integer("is_local", { mode: "boolean" }).default(false),
   barcode: text("barcode"),
+  source: text("source"),
+  external_id: text("external_id"),
+  image_url: text("image_url"),
   created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -62,6 +65,7 @@ export const mealPlans = sqliteTable("meal_plans", {
   description: text("description"),
   total_calories: integer("total_calories"),
   is_active: integer("is_active", { mode: "boolean" }).default(false),
+  week_start_date: text("week_start_date"),
   created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
@@ -124,6 +128,52 @@ export const notificationSubscriptions = sqliteTable("notification_subscriptions
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const quizQuestions = sqliteTable("quiz_questions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  education_content_id: integer("education_content_id").references(() => educationContent.id),
+  question: text("question").notNull(),
+  options: text("options").notNull(), // JSON array
+  correct_index: integer("correct_index").notNull(),
+  explanation: text("explanation").notNull(),
+  xp_reward: integer("xp_reward").default(25).notNull(),
+  created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const userEducationProgress = sqliteTable("user_education_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  education_content_id: integer("education_content_id").notNull().references(() => educationContent.id),
+  completed_at: text("completed_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const userQuizResults = sqliteTable("user_quiz_results", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  quiz_question_id: integer("quiz_question_id").notNull().references(() => quizQuestions.id),
+  answered_correctly: integer("answered_correctly", { mode: "boolean" }).notNull(),
+  answered_at: text("answered_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+export const chatMessages = sqliteTable("chat_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  role: text("role").notNull(), // "user" | "assistant"
+  content: text("content").notNull(),
+  created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+// Phase 4: Push notification preferences on users table
+// (push_enabled, breakfast_time, etc. added via schema update)
+
+export const userChallengeProgress = sqliteTable("user_challenge_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  challenge_id: integer("challenge_id").notNull().references(() => dailyChallenges.id),
+  current_value: integer("current_value").default(0).notNull(),
+  completed: integer("completed", { mode: "boolean" }).default(false),
+  date: text("date").notNull(),
 });
 
 export const waterLogs = sqliteTable("water_logs", {
