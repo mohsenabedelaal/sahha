@@ -28,6 +28,16 @@ interface Plan {
   week_start_date: string | null;
 }
 
+interface Alternative {
+  id: string;
+  title: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  serving_size: string;
+}
+
 export default function PlanPage() {
   const [activeDay, setActiveDay] = useState(() => {
     const d = new Date().getDay();
@@ -38,7 +48,7 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [swapItemId, setSwapItemId] = useState<number | null>(null);
-  const [alternatives, setAlternatives] = useState<Array<{ id: number; title: string }>>([]);
+  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
   const [swapLoading, setSwapLoading] = useState(false);
   const [showGrocery, setShowGrocery] = useState(false);
 
@@ -96,12 +106,12 @@ export default function PlanPage() {
     }
   }
 
-  async function selectAlternative(recipeId: number) {
+  async function selectAlternative(foodId: string) {
     if (!swapItemId) return;
     await fetch("/api/meals/plan/swap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planItemId: swapItemId, newRecipeId: recipeId }),
+      body: JSON.stringify({ planItemId: swapItemId, newFoodId: foodId }),
     });
     setSwapItemId(null);
     await loadPlan();
@@ -132,14 +142,13 @@ export default function PlanPage() {
         <h1 className="text-[22px] font-extrabold tracking-[-0.5px]">Meal Plan</h1>
         <p className="text-[12px] text-tx2">
           {plan ? plan.name : "No active plan"} ·{" "}
-          <span className="text-[8px] font-bold font-mono bg-amber-d text-amber py-[2px] px-[7px] rounded">
-            Spoonacular API
+          <span className="text-[8px] font-bold font-mono bg-mint-d text-mint py-[2px] px-[7px] rounded">
+            FatSecret DB
           </span>
         </p>
       </div>
 
       {!plan ? (
-        // Empty state
         <div className="text-center py-12">
           <div className="text-[48px] mb-3">📋</div>
           <p className="text-[15px] font-bold mb-2">No Meal Plan Yet</p>
@@ -151,7 +160,7 @@ export default function PlanPage() {
             disabled={generating}
             className="inline-flex items-center gap-2 py-3 px-8 rounded-xl bg-mint text-background text-[13px] font-bold disabled:opacity-50"
           >
-            {generating ? "Generating..." : "Generate Plan"}
+            {generating ? "Generating..." : "✨ Generate Plan"}
           </button>
         </div>
       ) : (
@@ -228,15 +237,15 @@ export default function PlanPage() {
       )}
 
       <p className="text-center text-[9px] text-tx3">
-        Recipes by Spoonacular · Nutrition data verified
+        Powered by FatSecret · 2.3M+ foods
       </p>
 
       {/* Swap Modal */}
       {swapItemId !== null && (
         <SwapModal
-          alternatives={alternatives}
+          alternatives={alternatives.map((a) => ({ id: a.id, title: a.title }))}
           loading={swapLoading}
-          onSelect={selectAlternative}
+          onSelect={(id) => selectAlternative(id)}
           onClose={() => setSwapItemId(null)}
         />
       )}

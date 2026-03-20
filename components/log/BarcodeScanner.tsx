@@ -94,7 +94,7 @@ export function BarcodeScanner({ onResult }: BarcodeScannerProps) {
         <span className="text-[12px] font-bold">{loading ? "Looking up..." : "Scan Barcode"}</span>
         <span className="text-[10px] text-tx2 text-center">Packaged food lookup</span>
         <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded mt-0.5 bg-mint-d text-mint">
-          FatSecret + OFF
+          FatSecret
         </span>
       </button>
       {error && <p className="text-[11px] text-coral mt-1 text-center">{error}</p>}

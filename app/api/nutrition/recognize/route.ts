@@ -15,10 +15,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image is required" }, { status: 400 });
   }
 
-  const results = await recognizeFood(
-    image,
-    (mediaType as "image/jpeg" | "image/png" | "image/webp") || "image/jpeg"
-  );
-
-  return NextResponse.json({ foods: results });
+  try {
+    const results = await recognizeFood(
+      image,
+      (mediaType as "image/jpeg" | "image/png" | "image/webp") || "image/jpeg"
+    );
+    return NextResponse.json({ foods: results });
+  } catch (err) {
+    console.error("Photo recognition error:", err);
+    return NextResponse.json({ error: "Photo recognition failed" }, { status: 500 });
+  }
 }

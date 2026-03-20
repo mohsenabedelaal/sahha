@@ -3,15 +3,14 @@
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Alternative {
-  id: number;
+  id: string;
   title: string;
-  readyInMinutes?: number;
 }
 
 interface SwapModalProps {
   alternatives: Alternative[];
   loading: boolean;
-  onSelect: (recipeId: number) => void;
+  onSelect: (foodId: string) => void;
   onClose: () => void;
 }
 
@@ -53,9 +52,6 @@ export function SwapModal({ alternatives, loading, onSelect, onClose }: SwapModa
                   className="w-full text-left px-3.5 py-3 bg-surface-2 border border-border rounded-[10px] active:border-mint transition-colors"
                 >
                   <p className="text-[13px] font-semibold">{alt.title}</p>
-                  {alt.readyInMinutes && (
-                    <p className="text-[10px] text-tx2 mt-0.5">{alt.readyInMinutes} min</p>
-                  )}
                 </button>
               ))}
             </div>

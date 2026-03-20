@@ -7,8 +7,13 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.access_token;
   }
 
-  const clientId = process.env.FATSECRET_CLIENT_ID!;
-  const clientSecret = process.env.FATSECRET_CLIENT_SECRET!;
+  const clientId = process.env.FATSECRET_CLIENT_ID;
+  const clientSecret = process.env.FATSECRET_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("FATSECRET_CLIENT_ID and FATSECRET_CLIENT_SECRET must be set");
+  }
+
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
   const res = await fetch("https://oauth.fatsecret.com/connect/token", {
@@ -44,19 +49,20 @@ async function apiCall(method: string, params: Record<string, string>) {
 }
 
 function parseNutrition(serving: Record<string, string>): NutritionInfo {
+  const metricSize = serving.metric_serving_amount && serving.metric_serving_unit
+    ? `${serving.metric_serving_amount}${serving.metric_serving_unit}`
+    : null;
   return {
     calories: parseFloat(serving.calories || "0"),
     protein_g: parseFloat(serving.protein || "0"),
     carbs_g: parseFloat(serving.carbohydrate || "0"),
     fat_g: parseFloat(serving.fat || "0"),
     fiber_g: parseFloat(serving.fiber || "0"),
-    serving_size: serving.serving_description || serving.metric_serving_amount
-      ? `${serving.metric_serving_amount}${serving.metric_serving_unit}`
-      : "1 serving",
+    serving_size: serving.serving_description || metricSize || "1 serving",
   };
 }
 
-export async function searchFoods(query: string, maxResults = 10): Promise<FoodSearchResult[]> {
+export async function searchFoods(query: string, maxResults = 15): Promise<FoodSearchResult[]> {
   const data = await apiCall("foods.search", {
     search_expression: query,
     max_results: String(maxResults),
@@ -72,7 +78,6 @@ export async function searchFoods(query: string, maxResults = 10): Promise<FoodS
     const match = desc.match(
       /Calories:\s*([\d.]+).*Fat:\s*([\d.]+)g.*Carbs:\s*([\d.]+)g.*Protein:\s*([\d.]+)g/i
     );
-
     const servingMatch = desc.match(/^Per\s+(.+?)\s*-/i);
 
     return {
@@ -85,6 +90,7 @@ export async function searchFoods(query: string, maxResults = 10): Promise<FoodS
         fat_g: match ? parseFloat(match[2]) : 0,
         carbs_g: match ? parseFloat(match[3]) : 0,
         protein_g: match ? parseFloat(match[4]) : 0,
+        fiber_g: 0,
         serving_size: servingMatch ? servingMatch[1] : "1 serving",
       },
     };
@@ -114,5 +120,41 @@ export async function lookupBarcode(barcode: string): Promise<FoodSearchResult |
     };
   } catch {
     return null;
+  }
+}
+
+export async function getFood(foodId: string): Promise<FoodSearchResult | null> {
+  try {
+    const data = await apiCall("food.get.v4", { food_id: foodId });
+    const food = data?.food;
+    if (!food) return null;
+
+    const servings = food.servings?.serving;
+    const serving = Array.isArray(servings) ? servings[0] : servings;
+    if (!serving) return null;
+
+    return {
+      id: food.food_id,
+      name: food.food_name,
+      brand: food.brand_name,
+      source: "fatsecret",
+      nutrition: parseNutrition(serving),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function autocomplete(expression: string): Promise<string[]> {
+  try {
+    const data = await apiCall("foods.autocomplete", {
+      expression,
+      max_results: "5",
+    });
+    const suggestions = data?.suggestions?.suggestion;
+    if (!suggestions) return [];
+    return Array.isArray(suggestions) ? suggestions : [suggestions];
+  } catch {
+    return [];
   }
 }

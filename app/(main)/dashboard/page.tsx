@@ -53,11 +53,11 @@ export default function DashboardPage() {
         best_streak: user.best_streak,
       });
 
-      setLoaded(true);
-
       // Load today's meals and sync offline data
       await syncOfflineMeals();
       await loadTodaysMeals();
+
+      setLoaded(true);
     }
 
     if (session?.user) loadUser();

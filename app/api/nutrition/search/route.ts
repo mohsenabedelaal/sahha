@@ -13,6 +13,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ foods: [] });
   }
 
-  const foods = await searchFoods(query, 15);
-  return NextResponse.json({ foods });
+  try {
+    const foods = await searchFoods(query, 15);
+    return NextResponse.json({ foods });
+  } catch (err) {
+    console.error("FatSecret search error:", err);
+    return NextResponse.json({ error: "Food search failed" }, { status: 500 });
+  }
 }

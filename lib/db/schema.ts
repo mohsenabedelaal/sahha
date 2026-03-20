@@ -29,19 +29,23 @@ export const users = sqliteTable("users", {
 
 export const foodItems = sqliteTable("food_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  fatsecret_id: text("fatsecret_id"),
+  external_id: text("external_id"),
   name: text("name").notNull(),
   name_ar: text("name_ar"),
+  brand: text("brand"),
   calories: real("calories").notNull(),
   protein_g: real("protein_g").notNull(),
   carbs_g: real("carbs_g").notNull(),
   fat_g: real("fat_g").notNull(),
+  fiber_g: real("fiber_g").default(0),
   serving_size: text("serving_size").notNull(),
+  serving_unit: text("serving_unit"),
   category: text("category"),
+  source: text("source").default("manual"),
+  image_url: text("image_url"),
   is_local: integer("is_local", { mode: "boolean" }).default(false),
   barcode: text("barcode"),
-  source: text("source"),
-  external_id: text("external_id"),
-  image_url: text("image_url"),
   created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 

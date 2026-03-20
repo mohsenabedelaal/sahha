@@ -84,7 +84,7 @@ export function VoiceInput({ onResults }: VoiceInputProps) {
       <span className="text-[12px] font-bold">Voice Log</span>
       <span className="text-[10px] text-tx2 text-center">&quot;Two eggs and toast&quot;</span>
       <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded mt-0.5 bg-sky-d text-sky">
-        Edamam NLP
+        Claude AI
       </span>
     </button>
   );
