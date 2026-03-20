@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { searchFoods } from "@/lib/api/fatsecret";
 
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get("q")?.trim();
-  const page = parseInt(req.nextUrl.searchParams.get("page") ?? "0", 10);
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!q || q.length < 2) {
+  const query = req.nextUrl.searchParams.get("q");
+  if (!query || query.length < 2) {
     return NextResponse.json({ foods: [] });
   }
 
   try {
-    const foods = await searchFoods(q, page);
+    const foods = await searchFoods(query, 15);
     return NextResponse.json({ foods });
   } catch (err) {
     console.error("FatSecret search error:", err);

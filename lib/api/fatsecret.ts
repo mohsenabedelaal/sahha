@@ -1,36 +1,10 @@
-/**
- * FatSecret Platform API wrapper
- * Uses OAuth 2.0 client credentials flow.
- * Docs: https://platform.fatsecret.com/api/Default.aspx?screen=rapih
- */
+import type { FoodSearchResult, NutritionInfo } from "./types";
 
-const TOKEN_URL = "https://oauth.fatsecret.com/connect/token";
-const API_BASE = "https://platform.fatsecret.com/rest/server.api";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface FoodItem {
-  fatsecret_id: string;
-  name: string;
-  brand: string | null;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  fiber_g: number;
-  serving_size: string;
-  serving_unit: string;
-  serving_description: string;
-}
-
-// ─── Token cache ──────────────────────────────────────────────────────────────
-
-let cachedToken: string | null = null;
-let tokenExpiry = 0;
+let cachedToken: { access_token: string; expires_at: number } | null = null;
 
 async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) {
-    return cachedToken;
+  if (cachedToken && Date.now() < cachedToken.expires_at) {
+    return cachedToken.access_token;
   }
 
   const clientId = process.env.FATSECRET_CLIENT_ID;
@@ -42,177 +16,145 @@ async function getAccessToken(): Promise<string> {
 
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-  const res = await fetch(TOKEN_URL, {
+  const res = await fetch("https://oauth.fatsecret.com/connect/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: "grant_type=client_credentials&scope=basic",
+    body: "grant_type=client_credentials&scope=basic barcode",
   });
 
-  if (!res.ok) {
-    throw new Error(`FatSecret token error: ${res.status} ${await res.text()}`);
-  }
+  if (!res.ok) throw new Error(`FatSecret auth failed: ${res.status}`);
 
   const data = await res.json();
-  cachedToken = data.access_token as string;
-  // Refresh 60 seconds before expiry
-  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  cachedToken = {
+    access_token: data.access_token,
+    expires_at: Date.now() + (data.expires_in - 60) * 1000,
+  };
 
-  return cachedToken;
+  return data.access_token;
 }
 
-// ─── API helper ───────────────────────────────────────────────────────────────
-
-async function apiCall(params: Record<string, string | number>): Promise<unknown> {
+async function apiCall(method: string, params: Record<string, string>) {
   const token = await getAccessToken();
-  const url = new URL(API_BASE);
-  url.searchParams.set("format", "json");
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, String(value));
-  }
+  const query = new URLSearchParams({ method, format: "json", ...params });
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(`https://platform.fatsecret.com/rest/server.api?${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (!res.ok) {
-    throw new Error(`FatSecret API error: ${res.status} ${await res.text()}`);
-  }
-
+  if (!res.ok) throw new Error(`FatSecret API error: ${res.status}`);
   return res.json();
 }
 
-// ─── Normalizer ───────────────────────────────────────────────────────────────
-
-// FatSecret returns serving nutrition per serving_description.
-// We normalize to the first/default serving.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeServing(foodId: string, foodName: string, brandName: string | null, serving: any): FoodItem {
-  const nutrientValue = (key: string): number => {
-    const v = serving[key];
-    return v != null ? parseFloat(v) : 0;
-  };
-
-  const servingDesc: string = serving.serving_description ?? "1 serving";
-  // Extract numeric serving size from description like "100 g" or "1 cup (240 ml)"
-  const sizeMatch = servingDesc.match(/^([\d.]+)\s*(\w+)/);
-  const servingSize = sizeMatch ? sizeMatch[1] : "1";
-  const servingUnit = sizeMatch ? sizeMatch[2] : "serving";
-
+function parseNutrition(serving: Record<string, string>): NutritionInfo {
+  const metricSize = serving.metric_serving_amount && serving.metric_serving_unit
+    ? `${serving.metric_serving_amount}${serving.metric_serving_unit}`
+    : null;
   return {
-    fatsecret_id: foodId,
-    name: foodName,
-    brand: brandName,
-    calories: nutrientValue("calories"),
-    protein_g: nutrientValue("protein"),
-    carbs_g: nutrientValue("carbohydrate"),
-    fat_g: nutrientValue("fat"),
-    fiber_g: nutrientValue("fiber"),
-    serving_size: servingSize,
-    serving_unit: servingUnit,
-    serving_description: servingDesc,
+    calories: parseFloat(serving.calories || "0"),
+    protein_g: parseFloat(serving.protein || "0"),
+    carbs_g: parseFloat(serving.carbohydrate || "0"),
+    fat_g: parseFloat(serving.fat || "0"),
+    fiber_g: parseFloat(serving.fiber || "0"),
+    serving_size: serving.serving_description || metricSize || "1 serving",
   };
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
-
-/**
- * Search foods by text query. Returns up to 20 results per page.
- */
-export async function searchFoods(
-  query: string,
-  pageNumber = 0,
-): Promise<FoodItem[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiCall({
-    method: "foods.search",
+export async function searchFoods(query: string, maxResults = 15): Promise<FoodSearchResult[]> {
+  const data = await apiCall("foods.search", {
     search_expression: query,
-    page_number: pageNumber,
-    max_results: 20,
-  }) as any;
+    max_results: String(maxResults),
+  });
 
   const foods = data?.foods?.food;
   if (!foods) return [];
 
-  const list = Array.isArray(foods) ? foods : [foods];
+  const foodList = Array.isArray(foods) ? foods : [foods];
 
-  // foods.search returns summary data — we return lightweight items from it
-  return list.map((f: any): FoodItem => {
-    // food_description example: "Per 100g - Calories: 165kcal | Fat: 3.57g | Carbs: 0g | Protein: 31.02g"
-    const desc: string = f.food_description ?? "";
-    const cal = parseFloat(desc.match(/Calories:\s*([\d.]+)/i)?.[1] ?? "0");
-    const fat = parseFloat(desc.match(/Fat:\s*([\d.]+)/i)?.[1] ?? "0");
-    const carbs = parseFloat(desc.match(/Carbs:\s*([\d.]+)/i)?.[1] ?? "0");
-    const protein = parseFloat(desc.match(/Protein:\s*([\d.]+)/i)?.[1] ?? "0");
-    const serving_desc = desc.split(" - ")[0]?.trim() ?? "Per serving";
-
-    const sizeMatch = serving_desc.match(/^Per\s+([\d.]+)\s*(\w+)/i);
-    const servingSize = sizeMatch ? sizeMatch[1] : "1";
-    const servingUnit = sizeMatch ? sizeMatch[2] : "serving";
+  return foodList.map((f: Record<string, string>) => {
+    const desc = f.food_description || "";
+    const match = desc.match(
+      /Calories:\s*([\d.]+).*Fat:\s*([\d.]+)g.*Carbs:\s*([\d.]+)g.*Protein:\s*([\d.]+)g/i
+    );
+    const servingMatch = desc.match(/^Per\s+(.+?)\s*-/i);
 
     return {
-      fatsecret_id: String(f.food_id),
+      id: f.food_id,
       name: f.food_name,
-      brand: f.brand_name ?? null,
-      calories: cal,
-      protein_g: protein,
-      carbs_g: carbs,
-      fat_g: fat,
-      fiber_g: 0,
-      serving_size: servingSize,
-      serving_unit: servingUnit,
-      serving_description: serving_desc,
+      brand: f.brand_name,
+      source: "fatsecret" as const,
+      nutrition: {
+        calories: match ? parseFloat(match[1]) : 0,
+        fat_g: match ? parseFloat(match[2]) : 0,
+        carbs_g: match ? parseFloat(match[3]) : 0,
+        protein_g: match ? parseFloat(match[4]) : 0,
+        fiber_g: 0,
+        serving_size: servingMatch ? servingMatch[1] : "1 serving",
+      },
     };
   });
 }
 
-/**
- * Get full nutrition details for a food by its FatSecret food ID.
- * Returns the first (default) serving.
- */
-export async function getFood(foodId: string): Promise<FoodItem | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiCall({ method: "food.get", food_id: foodId }) as any;
-  const food = data?.food;
-  if (!food) return null;
+export async function lookupBarcode(barcode: string): Promise<FoodSearchResult | null> {
+  try {
+    const data = await apiCall("food.find_id_for_barcode", { barcode });
+    const foodId = data?.food_id?.value;
+    if (!foodId) return null;
 
-  const servings = food.servings?.serving;
-  if (!servings) return null;
+    const foodData = await apiCall("food.get.v4", { food_id: foodId });
+    const food = foodData?.food;
+    if (!food) return null;
 
-  const serving = Array.isArray(servings) ? servings[0] : servings;
-  return normalizeServing(String(food.food_id), food.food_name, food.brand_name ?? null, serving);
+    const servings = food.servings?.serving;
+    const serving = Array.isArray(servings) ? servings[0] : servings;
+    if (!serving) return null;
+
+    return {
+      id: food.food_id,
+      name: food.food_name,
+      brand: food.brand_name,
+      source: "fatsecret",
+      nutrition: parseNutrition(serving),
+    };
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Look up a food by barcode (EAN/UPC). Returns null if not found.
- */
-export async function findByBarcode(barcode: string): Promise<FoodItem | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiCall({
-    method: "food.find_id_for_barcode",
-    barcode,
-  }) as any;
+export async function getFood(foodId: string): Promise<FoodSearchResult | null> {
+  try {
+    const data = await apiCall("food.get.v4", { food_id: foodId });
+    const food = data?.food;
+    if (!food) return null;
 
-  const foodId = data?.food_id?.value;
-  if (!foodId) return null;
+    const servings = food.servings?.serving;
+    const serving = Array.isArray(servings) ? servings[0] : servings;
+    if (!serving) return null;
 
-  return getFood(String(foodId));
+    return {
+      id: food.food_id,
+      name: food.food_name,
+      brand: food.brand_name,
+      source: "fatsecret",
+      nutrition: parseNutrition(serving),
+    };
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Autocomplete food names for a partial expression. Returns up to 5 names.
- */
 export async function autocomplete(expression: string): Promise<string[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await apiCall({
-    method: "foods.autocomplete",
-    expression,
-    max_results: 5,
-  }) as any;
-
-  const suggestions = data?.suggestions?.suggestion;
-  if (!suggestions) return [];
-  return Array.isArray(suggestions) ? suggestions : [suggestions];
+  try {
+    const data = await apiCall("foods.autocomplete", {
+      expression,
+      max_results: "5",
+    });
+    const suggestions = data?.suggestions?.suggestion;
+    if (!suggestions) return [];
+    return Array.isArray(suggestions) ? suggestions : [suggestions];
+  } catch {
+    return [];
+  }
 }

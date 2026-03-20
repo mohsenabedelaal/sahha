@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findByBarcode } from "@/lib/api/fatsecret";
+import { auth } from "@/lib/auth";
+import { lookupBarcode } from "@/lib/api/fatsecret";
 
 export async function GET(req: NextRequest) {
-  const barcode = req.nextUrl.searchParams.get("barcode")?.trim();
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!barcode) {
-    return NextResponse.json({ error: "barcode parameter required" }, { status: 400 });
+  const code = req.nextUrl.searchParams.get("code");
+  if (!code) {
+    return NextResponse.json({ error: "Barcode is required" }, { status: 400 });
   }
 
   try {
-    const food = await findByBarcode(barcode);
+    const food = await lookupBarcode(code);
     if (!food) {
-      return NextResponse.json({ error: "Food not found for barcode" }, { status: 404 });
+      return NextResponse.json({ found: false });
     }
-    return NextResponse.json({ food });
+    return NextResponse.json({ found: true, food });
   } catch (err) {
     console.error("Barcode lookup error:", err);
-    return NextResponse.json({ error: "Barcode lookup failed" }, { status: 500 });
+    return NextResponse.json({ found: false });
   }
 }

@@ -1,13 +1,147 @@
-import { Card } from "@/components/ui/card";
+"use client";
+
+import { useState, useEffect } from "react";
+import { LessonCard } from "@/components/learn/LessonCard";
+import { LessonViewer } from "@/components/learn/LessonViewer";
+import { QuizFlow } from "@/components/learn/QuizFlow";
+import Link from "next/link";
+
+interface LessonData {
+  id: number;
+  title: string;
+  category: string;
+  difficulty_level: string;
+  xp_reward: number;
+  completed: boolean;
+  locked: boolean;
+  required_level: number;
+}
 
 export default function LearnPage() {
+  const [lessons, setLessons] = useState<LessonData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewingLesson, setViewingLesson] = useState<number | null>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [completionMsg, setCompletionMsg] = useState("");
+
+  useEffect(() => {
+    loadLessons();
+  }, []);
+
+  function loadLessons() {
+    setLoading(true);
+    fetch("/api/education/lessons")
+      .then((r) => r.ok ? r.json() : { lessons: [] })
+      .then((data) => setLessons(data.lessons || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  function handleLessonComplete(xpGained: number) {
+    setViewingLesson(null);
+    setCompletionMsg(`Lesson complete! +${xpGained} XP`);
+    setTimeout(() => setCompletionMsg(""), 3000);
+    loadLessons();
+  }
+
+  function handleQuizComplete(score: number, total: number) {
+    setCompletionMsg(`Quiz done! ${score}/${total} correct`);
+    setTimeout(() => setCompletionMsg(""), 3000);
+  }
+
+  if (viewingLesson !== null) {
+    return (
+      <LessonViewer
+        lessonId={viewingLesson}
+        onClose={() => setViewingLesson(null)}
+        onComplete={handleLessonComplete}
+      />
+    );
+  }
+
+  if (showQuiz) {
+    return (
+      <QuizFlow
+        onClose={() => setShowQuiz(false)}
+        onComplete={handleQuizComplete}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Learn</h1>
-      <Card className="flex flex-col items-center py-12">
-        <p className="text-muted text-lg">Coming soon</p>
-        <p className="text-sm text-muted mt-2">Nutrition education content will be available in the next update</p>
-      </Card>
+    <div className="py-4 px-4 flex flex-col gap-3.5">
+      <h1 className="text-[22px] font-extrabold tracking-[-0.5px]">Learn</h1>
+
+      {completionMsg && (
+        <div className="bg-mint-d border border-[rgba(52,211,153,0.2)] rounded-xl px-4 py-2.5 text-[12px] font-semibold text-mint text-center">
+          ✓ {completionMsg}
+        </div>
+      )}
+
+      {/* Quiz Banner */}
+      <div
+        className="rounded-[14px] py-[18px] px-4 text-center"
+        style={{
+          background: "linear-gradient(135deg, rgba(167,139,250,0.08), rgba(56,189,248,0.06))",
+          border: "1px solid rgba(167,139,250,0.15)",
+        }}
+      >
+        <div className="text-[26px] mb-[5px]">🧠</div>
+        <p className="text-[15px] font-extrabold mb-[3px]">Nutrition IQ Quiz</p>
+        <p className="text-[11px] text-tx2 mb-2.5">Test your knowledge — earn XP!</p>
+        <button
+          onClick={() => setShowQuiz(true)}
+          className="inline-block py-[9px] px-[22px] rounded-[9px] text-white text-[12px] font-bold"
+          style={{ background: "linear-gradient(135deg, var(--violet), var(--sky))" }}
+        >
+          Start Quiz →
+        </button>
+      </div>
+
+      {/* AI Coach */}
+      <Link
+        href="/chat"
+        className="rounded-[14px] py-3 px-4 flex items-center gap-3 transition-colors active:border-mint"
+        style={{
+          background: "linear-gradient(135deg, rgba(52,211,153,0.06), rgba(167,139,250,0.04))",
+          border: "1px solid rgba(52,211,153,0.12)",
+        }}
+      >
+        <span className="text-[26px]">🤖</span>
+        <div className="flex-1">
+          <p className="text-[13px] font-bold">AI Nutrition Coach</p>
+          <p className="text-[10px] text-tx2">Ask anything about nutrition</p>
+        </div>
+        <span className="text-[12px] text-mint font-semibold">Chat →</span>
+      </Link>
+
+      {/* Micro-Lessons */}
+      <div className="text-[11px] font-bold text-tx3 uppercase tracking-[1.2px] font-mono">
+        Micro-Lessons
+      </div>
+
+      {loading ? (
+        <div className="text-center py-4 text-[12px] text-tx3">Loading lessons...</div>
+      ) : (
+        lessons.map((lesson) => (
+          <LessonCard
+            key={lesson.id}
+            id={lesson.id}
+            title={lesson.title}
+            category={lesson.category}
+            difficulty_level={lesson.difficulty_level}
+            xp_reward={lesson.xp_reward}
+            completed={lesson.completed}
+            locked={lesson.locked}
+            requiredLevel={lesson.required_level}
+            onSelect={setViewingLesson}
+          />
+        ))
+      )}
+
+      <p className="text-center text-[9px] text-tx3 mt-1">
+        Content generated by Claude AI · Verified by nutrition experts
+      </p>
     </div>
   );
 }

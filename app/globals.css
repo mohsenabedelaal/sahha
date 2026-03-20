@@ -2,28 +2,54 @@
 
 :root {
   --background: #0d1117;
-  --foreground: #e6edf3;
+  --bg2: #0a0d12;
+  --foreground: #e8ecf4;
   --surface: #151b27;
   --surface-2: #1c2333;
+  --surface-3: #242d3d;
   --mint: #34d399;
+  --mint-d: rgba(52, 211, 153, 0.1);
+  --mint-g: rgba(52, 211, 153, 0.3);
   --amber: #fbbf24;
+  --amber-d: rgba(251, 191, 36, 0.1);
+  --coral: #fb7185;
+  --coral-d: rgba(251, 113, 133, 0.1);
   --sky: #38bdf8;
+  --sky-d: rgba(56, 189, 248, 0.1);
   --violet: #a78bfa;
+  --violet-d: rgba(167, 139, 250, 0.1);
   --red: #ef4444;
   --muted: #8b949e;
+  --text-secondary: #8894aa;
+  --text-tertiary: #505d74;
+  --border: #1e2a3a;
+  --radius: 14px;
+  --radius-sm: 10px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-bg2: var(--bg2);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-mint: var(--mint);
+  --color-mint-d: var(--mint-d);
+  --color-mint-g: var(--mint-g);
   --color-amber: var(--amber);
+  --color-amber-d: var(--amber-d);
+  --color-coral: var(--coral);
+  --color-coral-d: var(--coral-d);
   --color-sky: var(--sky);
+  --color-sky-d: var(--sky-d);
   --color-violet: var(--violet);
+  --color-violet-d: var(--violet-d);
   --color-red: var(--red);
   --color-muted: var(--muted);
+  --color-tx2: var(--text-secondary);
+  --color-tx3: var(--text-tertiary);
+  --color-border: var(--border);
   --font-sans: var(--font-outfit);
   --font-mono: var(--font-space-mono);
 }
@@ -32,6 +58,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+}
+
+@keyframes pulse-fire {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-pulse-fire {
+  animation: pulse-fire 2s infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease;
 }
 
 /* Custom scrollbar for dark theme */
@@ -46,4 +90,13 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--surface-2);
   border-radius: 3px;
+}
+
+/* Hide scrollbar in horizontal scroll areas */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

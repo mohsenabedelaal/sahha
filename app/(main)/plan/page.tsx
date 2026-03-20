@@ -1,51 +1,56 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FoodSearch } from "@/components/meals/FoodSearch";
-import type { FoodItem } from "@/lib/api/fatsecret";
+import { MealPlanCard } from "@/components/plan/MealPlanCard";
+import { SwapModal } from "@/components/plan/SwapModal";
+import { GroceryList } from "@/components/plan/GroceryList";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
-const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface PlanItem {
   id: number;
-  food_item_id: number | null;
   meal_type: string;
-  servings: number;
-  day_of_week: number;
-  food_name: string | null;
-  food_brand: string | null;
-  food_calories: number | null;
-  food_protein_g: number | null;
-  food_carbs_g: number | null;
-  food_fat_g: number | null;
-  food_serving_size: string | null;
-  food_serving_unit: string | null;
+  day_of_week: number | null;
+  food_name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  image_url: string | null;
+  external_id: string | null;
 }
 
-const MEAL_EMOJI: Record<string, string> = {
-  breakfast: "🌅",
-  lunch: "☀️",
-  dinner: "🌙",
-  snack: "🍎",
-};
+interface Plan {
+  id: number;
+  name: string;
+  description: string | null;
+  total_calories: number | null;
+  week_start_date: string | null;
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
+interface Alternative {
+  id: string;
+  title: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  serving_size: string;
+}
 
 export default function PlanPage() {
-  const [activeDay, setActiveDay] = useState(0); // 0 = Monday
+  const [activeDay, setActiveDay] = useState(() => {
+    const d = new Date().getDay();
+    return d === 0 ? 6 : d - 1; // Mon=0 ... Sun=6
+  });
+  const [plan, setPlan] = useState<Plan | null>(null);
   const [items, setItems] = useState<PlanItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addingSlot, setAddingSlot] = useState<{ day: number; mealType: MealType } | null>(null);
-  const [pendingFood, setPendingFood] = useState<FoodItem | null>(null);
-  const [servings, setServings] = useState("1");
-  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [swapItemId, setSwapItemId] = useState<number | null>(null);
+  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [showGrocery, setShowGrocery] = useState(false);
 
   const loadPlan = useCallback(async () => {
     setLoading(true);
@@ -53,8 +58,11 @@ export default function PlanPage() {
       const res = await fetch("/api/meals/plan");
       if (res.ok) {
         const data = await res.json();
-        setItems(data.items ?? []);
+        setPlan(data.plan);
+        setItems(data.items || []);
       }
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -64,229 +72,186 @@ export default function PlanPage() {
     loadPlan();
   }, [loadPlan]);
 
-  // Set current day as default active day
-  useEffect(() => {
-    const jsDay = new Date().getDay(); // 0 = Sunday
-    const day = jsDay === 0 ? 6 : jsDay - 1; // convert to Mon=0
-    setActiveDay(day);
-  }, []);
-
-  async function addItem() {
-    if (!addingSlot || !pendingFood) return;
-    setSaving(true);
-
+  async function generatePlan() {
+    setGenerating(true);
     try {
-      const res = await fetch("/api/meals/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          food: pendingFood,
-          meal_type: addingSlot.mealType,
-          servings: parseFloat(servings) || 1,
-          day_of_week: addingSlot.day,
-        }),
-      });
-
+      const res = await fetch("/api/meals/plan", { method: "POST" });
       if (res.ok) {
         await loadPlan();
       }
+    } catch {
+      // ignore
     } finally {
-      setSaving(false);
-      setAddingSlot(null);
-      setPendingFood(null);
-      setServings("1");
+      setGenerating(false);
     }
   }
 
-  async function removeItem(id: number) {
-    await fetch(`/api/meals/plan?id=${id}`, { method: "DELETE" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  async function handleSwap(planItemId: number) {
+    setSwapItemId(planItemId);
+    setSwapLoading(true);
+    try {
+      const res = await fetch("/api/meals/plan/swap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planItemId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAlternatives(data.alternatives || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSwapLoading(false);
+    }
   }
 
-  // Items for the active day
-  const dayItems = items.filter((i) => i.day_of_week === activeDay);
+  async function selectAlternative(foodId: string) {
+    if (!swapItemId) return;
+    await fetch("/api/meals/plan/swap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planItemId: swapItemId, newFoodId: foodId }),
+    });
+    setSwapItemId(null);
+    await loadPlan();
+  }
 
-  // Daily totals
-  const dayCalories = dayItems.reduce((sum, i) => sum + (i.food_calories ?? 0) * i.servings, 0);
-  const dayProtein = dayItems.reduce((sum, i) => sum + (i.food_protein_g ?? 0) * i.servings, 0);
-  const dayCarbs = dayItems.reduce((sum, i) => sum + (i.food_carbs_g ?? 0) * i.servings, 0);
-  const dayFat = dayItems.reduce((sum, i) => sum + (i.food_fat_g ?? 0) * i.servings, 0);
+  const dayItems = items.filter((i) => i.day_of_week === activeDay);
+  const dayTotals = dayItems.reduce(
+    (acc, i) => ({
+      calories: acc.calories + i.calories,
+      protein_g: acc.protein_g + i.protein_g,
+      carbs_g: acc.carbs_g + i.carbs_g,
+      fat_g: acc.fat_g + i.fat_g,
+    }),
+    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-muted">Loading plan...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Meal Plan</h1>
-
-      {/* Day selector */}
-      <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-        {DAYS.map((day, i) => (
-          <button
-            key={day}
-            onClick={() => setActiveDay(i)}
-            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
-              activeDay === i
-                ? "bg-mint text-background"
-                : "bg-surface-2 text-muted hover:text-foreground"
-            }`}
-          >
-            {day.slice(0, 3)}
-          </button>
-        ))}
+    <div className="py-4 px-4 flex flex-col gap-3.5">
+      <div>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.5px]">Meal Plan</h1>
+        <p className="text-[12px] text-tx2">
+          {plan ? plan.name : "No active plan"} ·{" "}
+          <span className="text-[8px] font-bold font-mono bg-mint-d text-mint py-[2px] px-[7px] rounded">
+            FatSecret DB
+          </span>
+        </p>
       </div>
 
-      {/* Daily summary */}
-      {dayItems.length > 0 && (
-        <Card className="flex flex-col gap-1">
-          <h2 className="font-semibold text-sm text-muted mb-2">{DAYS[activeDay]} totals</h2>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Calories</span>
-            <span className="font-mono font-semibold text-mint">{Math.round(dayCalories)} kcal</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Protein</span>
-            <span className="font-mono">{Math.round(dayProtein)}g</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Carbs</span>
-            <span className="font-mono">{Math.round(dayCarbs)}g</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Fat</span>
-            <span className="font-mono">{Math.round(dayFat)}g</span>
-          </div>
-        </Card>
-      )}
-
-      {loading ? (
-        <div className="text-muted text-sm text-center py-8">Loading plan...</div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {MEAL_TYPES.map((mealType) => {
-            const slotItems = dayItems.filter((i) => i.meal_type === mealType);
-            const isAdding = addingSlot?.day === activeDay && addingSlot?.mealType === mealType;
-
-            return (
-              <Card key={mealType} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold capitalize">
-                    {MEAL_EMOJI[mealType]} {mealType}
-                  </h3>
-                  {!isAdding && (
-                    <button
-                      onClick={() => {
-                        setAddingSlot({ day: activeDay, mealType });
-                        setPendingFood(null);
-                        setServings("1");
-                      }}
-                      className="text-mint text-sm hover:text-mint/80 transition-colors"
-                    >
-                      + Add food
-                    </button>
-                  )}
-                </div>
-
-                {/* Existing items */}
-                {slotItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{item.food_name}</p>
-                      <p className="text-xs text-muted">
-                        {item.servings !== 1 ? `${item.servings} × ` : ""}
-                        {item.food_serving_size}{item.food_serving_unit ?? ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 ml-3 shrink-0">
-                      <span className="font-mono text-sm text-mint">
-                        {Math.round((item.food_calories ?? 0) * item.servings)} kcal
-                      </span>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-muted hover:text-red transition-colors"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {slotItems.length === 0 && !isAdding && (
-                  <p className="text-xs text-muted/50 text-center py-2">Nothing planned yet</p>
-                )}
-
-                {/* Add food form */}
-                {isAdding && (
-                  <div className="flex flex-col gap-3 rounded-xl bg-surface-2 p-3">
-                    <FoodSearch
-                      placeholder={`Search for ${mealType}...`}
-                      onSelect={(food) => setPendingFood(food)}
-                    />
-
-                    {pendingFood && (
-                      <>
-                        <div className="flex items-center justify-between rounded-xl bg-surface px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{pendingFood.name}</p>
-                            {pendingFood.brand && (
-                              <p className="text-xs text-muted">{pendingFood.brand}</p>
-                            )}
-                          </div>
-                          <p className="font-mono text-sm text-mint">
-                            {Math.round(pendingFood.calories)} kcal
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <label className="text-sm text-muted w-16 shrink-0">Servings</label>
-                          <input
-                            type="number"
-                            min="0.1"
-                            step="0.1"
-                            value={servings}
-                            onChange={(e) => setServings(e.target.value)}
-                            className="w-20 rounded-xl bg-surface px-3 py-2 text-sm border border-transparent focus:border-mint focus:ring-2 focus:ring-mint/20 focus:outline-none"
-                          />
-                          <p className="text-xs text-muted">
-                            = {Math.round(pendingFood.calories * (parseFloat(servings) || 1))} kcal
-                          </p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button onClick={addItem} loading={saving} size="sm" className="flex-1">
-                            Add to plan
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {
-                              setAddingSlot(null);
-                              setPendingFood(null);
-                            }}
-                            disabled={saving}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </>
-                    )}
-
-                    {!pendingFood && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setAddingSlot(null);
-                          setPendingFood(null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </Card>
-            );
-          })}
+      {!plan ? (
+        <div className="text-center py-12">
+          <div className="text-[48px] mb-3">📋</div>
+          <p className="text-[15px] font-bold mb-2">No Meal Plan Yet</p>
+          <p className="text-[12px] text-tx2 mb-5">
+            Generate a personalized weekly meal plan based on your calorie goals.
+          </p>
+          <button
+            onClick={generatePlan}
+            disabled={generating}
+            className="inline-flex items-center gap-2 py-3 px-8 rounded-xl bg-mint text-background text-[13px] font-bold disabled:opacity-50"
+          >
+            {generating ? "Generating..." : "✨ Generate Plan"}
+          </button>
         </div>
+      ) : (
+        <>
+          {/* Day Tabs */}
+          <div className="flex gap-[5px] overflow-x-auto scrollbar-hide">
+            {DAYS.map((day, i) => (
+              <button
+                key={day}
+                onClick={() => setActiveDay(i)}
+                className={`py-[7px] px-[13px] rounded-[9px] text-[12px] font-semibold whitespace-nowrap border transition-colors ${
+                  i === activeDay
+                    ? "bg-mint-d border-mint text-mint"
+                    : "bg-surface border-border text-tx2"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
+          {/* Meals */}
+          {dayItems.length === 0 ? (
+            <div className="text-center py-8 text-[12px] text-tx3">
+              No meals planned for this day.
+            </div>
+          ) : (
+            dayItems.map((item) => (
+              <MealPlanCard
+                key={item.id}
+                id={item.id}
+                name={item.food_name}
+                mealType={item.meal_type}
+                calories={item.calories}
+                protein_g={item.protein_g}
+                carbs_g={item.carbs_g}
+                fat_g={item.fat_g}
+                imageUrl={item.image_url}
+                onSwap={handleSwap}
+              />
+            ))
+          )}
+
+          {/* Daily Total */}
+          {dayItems.length > 0 && (
+            <div className="bg-surface border border-border rounded-[10px] py-3.5 text-center">
+              <div className="text-[12px] font-bold">Daily Total</div>
+              <div className="text-[22px] font-black text-mint my-[3px]">
+                {Math.round(dayTotals.calories).toLocaleString()} kcal
+              </div>
+              <div className="text-[11px] text-tx2 font-mono">
+                P:{Math.round(dayTotals.protein_g)}g · C:{Math.round(dayTotals.carbs_g)}g · F:{Math.round(dayTotals.fat_g)}g
+              </div>
+            </div>
+          )}
+
+          {/* Grocery Button */}
+          <button
+            onClick={() => setShowGrocery(true)}
+            className="flex items-center justify-center gap-2 w-full py-3.5 bg-mint-d border border-[rgba(52,211,153,0.18)] rounded-[14px] text-mint text-[13px] font-bold active:bg-[rgba(52,211,153,0.16)] transition-colors"
+          >
+            🛒 Generate Grocery List
+          </button>
+
+          {/* Re-generate */}
+          <button
+            onClick={generatePlan}
+            disabled={generating}
+            className="text-center text-[12px] text-tx2 font-semibold py-2 disabled:opacity-50"
+          >
+            {generating ? "Generating..." : "🔄 Regenerate Plan"}
+          </button>
+        </>
       )}
+
+      <p className="text-center text-[9px] text-tx3">
+        Powered by FatSecret · 2.3M+ foods
+      </p>
+
+      {/* Swap Modal */}
+      {swapItemId !== null && (
+        <SwapModal
+          alternatives={alternatives.map((a) => ({ id: a.id, title: a.title }))}
+          loading={swapLoading}
+          onSelect={(id) => selectAlternative(id)}
+          onClose={() => setSwapItemId(null)}
+        />
+      )}
+
+      {/* Grocery List */}
+      {showGrocery && <GroceryList onClose={() => setShowGrocery(false)} />}
     </div>
   );
 }

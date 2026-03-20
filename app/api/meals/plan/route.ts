@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { foodItems, mealPlans, mealPlanItems } from "@/lib/db/schema";
+import { mealPlans, mealPlanItems, foodItems, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { searchFoods } from "@/lib/api/fatsecret";
 
-// ─── GET: get the active meal plan with its items ────────────────────────────
+// ─── Predefined healthy meal suggestions per slot ─────────────────────────────
+
+const MEAL_SUGGESTIONS: Record<string, string[]> = {
+  breakfast: ["oatmeal", "Greek yogurt with berries", "scrambled eggs", "whole wheat toast", "banana smoothie", "granola", "avocado toast"],
+  lunch: ["grilled chicken salad", "lentil soup", "turkey sandwich", "quinoa bowl", "vegetable stir fry", "tuna wrap", "minestrone soup"],
+  dinner: ["grilled salmon", "chicken breast", "pasta with marinara", "beef stir fry", "baked cod", "vegetable curry", "grilled turkey"],
+  snack: ["apple", "almonds", "Greek yogurt", "banana", "mixed nuts", "carrot sticks", "hummus"],
+};
+
+function shuffle<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET() {
   const session = await auth();
@@ -14,158 +28,146 @@ export async function GET() {
 
   const userId = Number(session.user.id);
 
-  const [plan] = await db
+  const [activePlan] = await db
     .select()
     .from(mealPlans)
     .where(and(eq(mealPlans.user_id, userId), eq(mealPlans.is_active, true)))
     .limit(1);
 
-  if (!plan) {
+  if (!activePlan) {
     return NextResponse.json({ plan: null, items: [] });
   }
 
   const items = await db
     .select({
       id: mealPlanItems.id,
-      meal_plan_id: mealPlanItems.meal_plan_id,
-      food_item_id: mealPlanItems.food_item_id,
       meal_type: mealPlanItems.meal_type,
       servings: mealPlanItems.servings,
       day_of_week: mealPlanItems.day_of_week,
+      food_id: foodItems.id,
       food_name: foodItems.name,
-      food_brand: foodItems.brand,
-      food_calories: foodItems.calories,
-      food_protein_g: foodItems.protein_g,
-      food_carbs_g: foodItems.carbs_g,
-      food_fat_g: foodItems.fat_g,
-      food_serving_size: foodItems.serving_size,
-      food_serving_unit: foodItems.serving_unit,
+      calories: foodItems.calories,
+      protein_g: foodItems.protein_g,
+      carbs_g: foodItems.carbs_g,
+      fat_g: foodItems.fat_g,
+      image_url: foodItems.image_url,
+      external_id: foodItems.external_id,
     })
     .from(mealPlanItems)
-    .leftJoin(foodItems, eq(mealPlanItems.food_item_id, foodItems.id))
-    .where(eq(mealPlanItems.meal_plan_id, plan.id));
+    .innerJoin(foodItems, eq(mealPlanItems.food_item_id, foodItems.id))
+    .where(eq(mealPlanItems.meal_plan_id, activePlan.id))
+    .orderBy(mealPlanItems.day_of_week, mealPlanItems.meal_type);
 
-  return NextResponse.json({ plan, items });
+  return NextResponse.json({ plan: activePlan, items });
 }
 
-// ─── POST: add an item to the active plan (create plan if none) ──────────────
+// ─── POST — generate a FatSecret-powered 7-day plan ──────────────────────────
 
-interface PlanItemPayload {
-  food: {
-    fatsecret_id?: string;
-    name: string;
-    brand?: string;
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fiber_g?: number;
-    serving_size: string;
-    serving_unit?: string;
-    source?: string;
-  };
-  meal_type: string;
-  servings: number;
-  day_of_week: number; // 0 = Monday … 6 = Sunday
-}
-
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const userId = Number(session.user.id);
-  const body = (await req.json()) as PlanItemPayload;
-  const { food, meal_type, servings, day_of_week } = body;
 
-  if (!food || !meal_type || servings == null || day_of_week == null) {
-    return NextResponse.json({ error: "food, meal_type, servings, day_of_week required" }, { status: 400 });
-  }
-
-  // Ensure active plan exists
-  let [plan] = await db
-    .select()
-    .from(mealPlans)
-    .where(and(eq(mealPlans.user_id, userId), eq(mealPlans.is_active, true)))
+  // Get user preferences
+  const [user] = await db
+    .select({ daily_calorie_target: users.daily_calorie_target, diet_preference: users.diet_preference })
+    .from(users)
+    .where(eq(users.id, userId))
     .limit(1);
 
-  if (!plan) {
-    const [created] = await db
-      .insert(mealPlans)
-      .values({
-        user_id: userId,
-        name: "My Weekly Plan",
-        is_active: true,
-      })
-      .returning();
-    plan = created;
-  }
+  const targetCalories = user?.daily_calorie_target || 2000;
 
-  // Upsert food item
-  let foodItemId: number;
+  // Deactivate old plans
+  await db
+    .update(mealPlans)
+    .set({ is_active: false })
+    .where(and(eq(mealPlans.user_id, userId), eq(mealPlans.is_active, true)));
 
-  if (food.fatsecret_id) {
-    const existing = await db
-      .select({ id: foodItems.id })
-      .from(foodItems)
-      .where(eq(foodItems.fatsecret_id, food.fatsecret_id))
-      .limit(1);
+  const today = new Date();
+  const jsDay = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((jsDay + 6) % 7));
+  const weekStart = monday.toISOString().split("T")[0];
 
-    if (existing.length > 0) {
-      foodItemId = existing[0].id;
-    } else {
-      const [ins] = await db
-        .insert(foodItems)
-        .values({
-          fatsecret_id: food.fatsecret_id,
-          name: food.name,
-          brand: food.brand ?? null,
-          calories: food.calories,
-          protein_g: food.protein_g,
-          carbs_g: food.carbs_g,
-          fat_g: food.fat_g,
-          fiber_g: food.fiber_g ?? 0,
-          serving_size: food.serving_size,
-          serving_unit: food.serving_unit ?? null,
-          source: food.source ?? "fatsecret",
-        })
-        .returning({ id: foodItems.id });
-      foodItemId = ins.id;
-    }
-  } else {
-    const [ins] = await db
-      .insert(foodItems)
-      .values({
-        name: food.name,
-        calories: food.calories,
-        protein_g: food.protein_g,
-        carbs_g: food.carbs_g,
-        fat_g: food.fat_g,
-        fiber_g: food.fiber_g ?? 0,
-        serving_size: food.serving_size,
-        serving_unit: food.serving_unit ?? null,
-        source: food.source ?? "manual",
-      })
-      .returning({ id: foodItems.id });
-    foodItemId = ins.id;
-  }
-
-  const [item] = await db
-    .insert(mealPlanItems)
+  const [plan] = await db
+    .insert(mealPlans)
     .values({
-      meal_plan_id: plan.id,
-      food_item_id: foodItemId,
-      meal_type,
-      servings,
-      day_of_week,
+      user_id: userId,
+      name: `Week of ${weekStart}`,
+      description: `${targetCalories} kcal/day target`,
+      total_calories: targetCalories,
+      is_active: true,
+      week_start_date: weekStart,
     })
     .returning();
 
-  return NextResponse.json({ item }, { status: 201 });
+  // Build 7 days × 4 meal types using shuffled FatSecret suggestions
+  const shuffled = {
+    breakfast: shuffle(MEAL_SUGGESTIONS.breakfast),
+    lunch: shuffle(MEAL_SUGGESTIONS.lunch),
+    dinner: shuffle(MEAL_SUGGESTIONS.dinner),
+    snack: shuffle(MEAL_SUGGESTIONS.snack),
+  };
+
+  for (let day = 0; day < 7; day++) {
+    for (const mealType of ["breakfast", "lunch", "dinner", "snack"] as const) {
+      const query = shuffled[mealType][day % shuffled[mealType].length];
+
+      try {
+        const results = await searchFoods(query, 1);
+        if (results.length === 0) continue;
+
+        const food = results[0];
+
+        // Upsert food item
+        let [existing] = await db
+          .select({ id: foodItems.id })
+          .from(foodItems)
+          .where(eq(foodItems.fatsecret_id, food.id))
+          .limit(1);
+
+        let foodItemId: number;
+        if (existing) {
+          foodItemId = existing.id;
+        } else {
+          const [newFood] = await db
+            .insert(foodItems)
+            .values({
+              fatsecret_id: food.id,
+              name: food.name,
+              brand: food.brand ?? null,
+              calories: food.nutrition.calories,
+              protein_g: food.nutrition.protein_g,
+              carbs_g: food.nutrition.carbs_g,
+              fat_g: food.nutrition.fat_g,
+              fiber_g: food.nutrition.fiber_g ?? 0,
+              serving_size: food.nutrition.serving_size,
+              source: "fatsecret",
+            })
+            .returning({ id: foodItems.id });
+          foodItemId = newFood.id;
+        }
+
+        await db.insert(mealPlanItems).values({
+          meal_plan_id: plan.id,
+          food_item_id: foodItemId,
+          meal_type: mealType,
+          servings: 1,
+          day_of_week: day,
+        });
+      } catch {
+        // Skip failed items and continue
+      }
+    }
+  }
+
+  return NextResponse.json({ plan, message: "Plan generated" }, { status: 201 });
 }
 
-// ─── DELETE: remove an item from the meal plan ───────────────────────────────
+// ─── DELETE — remove a plan item ─────────────────────────────────────────────
 
 export async function DELETE(req: NextRequest) {
   const session = await auth();
@@ -179,6 +181,5 @@ export async function DELETE(req: NextRequest) {
   }
 
   await db.delete(mealPlanItems).where(eq(mealPlanItems.id, Number(id)));
-
   return NextResponse.json({ ok: true });
 }
