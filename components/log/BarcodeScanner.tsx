@@ -47,7 +47,7 @@ export function BarcodeScanner({ onResult }: BarcodeScannerProps) {
     try {
       await scanner.start(
         { facingMode: "environment" },
-        { fps: 10 }, // no qrbox — scan full frame, our overlay guides the user
+        { fps: 15, qrbox: { width: 270, height: 130 } },
         async (code) => {
           await scanner.stop();
           scannerRef.current = null;
