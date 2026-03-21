@@ -78,12 +78,16 @@ export function VoiceInput({ onResults }: VoiceInputProps) {
   return (
     <button
       onClick={() => setShowInput(true)}
-      className="w-full bg-surface border border-border rounded-[14px] py-4 px-3 flex flex-col items-center gap-1.5 cursor-pointer transition-all active:border-mint active:bg-surface-2 active:scale-[0.97]"
+      className="w-full bg-surface border border-border rounded-[14px] py-4 px-3 flex flex-col items-center gap-2 cursor-pointer transition-all active:border-violet/50 active:bg-surface-2 active:scale-[0.97]"
     >
-      <span className="text-[26px]">🎤</span>
-      <span className="text-[12px] font-bold">Voice Log</span>
-      <span className="text-[10px] text-tx2 text-center">&quot;Two eggs and toast&quot;</span>
-      <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded mt-0.5 bg-sky-d text-sky">
+      <div className="w-10 h-10 rounded-xl bg-violet-d flex items-center justify-center">
+        <svg className="text-violet" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+        </svg>
+      </div>
+      <span className="text-[12px] font-bold">Describe</span>
+      <span className="text-[9px] text-tx3 text-center leading-tight">&quot;Two eggs<br />and toast&quot;</span>
+      <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded bg-violet-d text-violet">
         Claude AI
       </span>
     </button>
