@@ -37,19 +37,25 @@ No boring spreadsheets. No guilt trips. Just streak flames, level-up animations,
     <td align="center"><b>Meal Plan</b></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/placeholder1.png" width="200" alt="Dashboard"/></td>
-    <td><img src="https://i.imgur.com/placeholder2.png" width="200" alt="Log Meal"/></td>
-    <td><img src="https://i.imgur.com/placeholder3.png" width="200" alt="Meal Plan"/></td>
+    <td><img src="./app-photos/Image%20(6).jpg" width="200" alt="Dashboard — calorie ring, macros, streak"/></td>
+    <td><img src="./app-photos/Image%20(5).jpg" width="200" alt="Log a Meal — search and input methods"/></td>
+    <td><img src="./app-photos/Image%20(2).jpg" width="200" alt="Meal Plan — weekly day slots and swaps"/></td>
   </tr>
   <tr>
     <td align="center"><b>Learn</b></td>
     <td align="center"><b>Profile</b></td>
-    <td></td>
+    <td align="center"><b>Home &amp; insights</b></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/placeholder4.png" width="200" alt="Learn"/></td>
-    <td><img src="https://i.imgur.com/placeholder5.png" width="200" alt="Profile"/></td>
-    <td></td>
+    <td><img src="./app-photos/Image%20(1).jpg" width="200" alt="Learn — quiz, coach, micro-lessons"/></td>
+    <td><img src="./app-photos/Image.jpg" width="200" alt="Profile — level, XP, achievements"/></td>
+    <td><img src="./app-photos/Image%20(4).jpg" width="200" alt="Home — daily meals and AI food insight"/></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3"><b>Log meal (detail)</b></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3"><img src="./app-photos/Image%20(3).jpg" width="200" alt="Log meal — serving and meal type before logging"/></td>
   </tr>
 </table>
 </div>
