@@ -46,3 +46,7 @@ public/sw.js.map
 
 # SQLite
 *.db
+
+certificates
+*.log
+*.png
