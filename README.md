@@ -57,6 +57,12 @@ No boring spreadsheets. No guilt trips. Just streak flames, level-up animations,
   <tr>
     <td align="center" colspan="3"><img src="./app-photos/Image%20(3).jpg" width="200" alt="Log meal — serving and meal type before logging"/></td>
   </tr>
+  <tr>
+    <td align="center" colspan="3"><b>Barcode scan</b></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3"><img src="./app-photos/Image%287%29.jpg" width="200" alt="Product scanned — health score, calories, and macros"/></td>
+  </tr>
 </table>
 </div>
 
@@ -65,6 +71,7 @@ No boring spreadsheets. No guilt trips. Just streak flames, level-up animations,
 > **Meal Plan** · AI-generated weekly plan (Mon–Sun × 4 meal slots) with one-tap food swaps
 > **Learn** · Nutrition IQ Quiz, AI Coach chat, and bite-sized micro-lessons
 > **Profile** · Level progress, achievement badges, body stats, and gamification overview
+> **Barcode scan** · Scanned product detail with health score, calories, and macro breakdown
 
 ---
 
