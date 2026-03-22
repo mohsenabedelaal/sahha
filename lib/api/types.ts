@@ -18,7 +18,7 @@ export interface FoodSearchResult {
   name: string;
   brand?: string;
   nutrition: NutritionInfo;
-  source: "fatsecret" | "claude" | "manual";
+  source: "fatsecret" | "claude" | "manual" | "openfoodfacts";
 }
 
 export interface ParsedFood {
@@ -31,7 +31,7 @@ export interface ParsedFood {
 export interface BarcodeResult {
   found: boolean;
   food?: FoodSearchResult;
-  source?: "fatsecret";
+  source?: "fatsecret" | "openfoodfacts";
 }
 
 export interface FoodExplanation {

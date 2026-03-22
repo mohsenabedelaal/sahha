@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { lookupBarcode } from "@/lib/api/fatsecret";
+import { lookupBarcodeOFF } from "@/lib/api/openfoodfacts";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const food = await lookupBarcode(code);
+    const food = await lookupBarcodeOFF(code);
     if (!food) {
       return NextResponse.json({ found: false });
     }
