@@ -157,7 +157,7 @@ export function BarcodeScanner({ onResult }: BarcodeScannerProps) {
         <span className="text-[12px] font-bold">Barcode</span>
         <span className="text-[9px] text-tx3 text-center leading-tight">Scan packaged<br />food</span>
         <span className="text-[8px] font-bold font-mono py-[2px] px-1.5 rounded bg-amber-d text-amber">
-          FatSecret
+          Open Food Facts
         </span>
       </button>
 

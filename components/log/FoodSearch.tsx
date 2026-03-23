@@ -214,10 +214,9 @@ export function FoodSearch({ onSelect }: FoodSearchProps) {
                     ))}
                   </div>
 
-                  {/* FatSecret attribution — required by their TOS */}
                   <div className="flex items-center justify-center gap-1.5 py-5">
                     <span className="text-[10px] text-tx3">Powered by</span>
-                    <span className="text-[10px] font-bold text-tx2">FatSecret</span>
+                    <span className="text-[10px] font-bold text-tx2">Open Food Facts</span>
                   </div>
                 </>
               )}

@@ -143,7 +143,7 @@ export default function PlanPage() {
         <p className="text-[12px] text-tx2">
           {plan ? plan.name : "No active plan"} ·{" "}
           <span className="text-[8px] font-bold font-mono bg-mint-d text-mint py-[2px] px-[7px] rounded">
-            FatSecret DB
+            Open Food Facts
           </span>
         </p>
       </div>
@@ -237,7 +237,7 @@ export default function PlanPage() {
       )}
 
       <p className="text-center text-[9px] text-tx3">
-        Powered by FatSecret · 2.3M+ foods
+        Powered by Open Food Facts
       </p>
 
       {/* Swap Modal */}

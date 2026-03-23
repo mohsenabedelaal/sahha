@@ -23,10 +23,10 @@ Sahha (صحة) is a mobile-first Progressive Web App where users track calories,
 - **NextAuth v5** — credentials-based auth (`lib/auth.ts`)
 
 ### Food & Nutrition APIs
-- **FatSecret Platform API** — primary food database (2.3M+ foods). OAuth 2.0 client credentials. Text search, food detail, barcode lookup. Wrapper: `lib/api/fatsecret.ts`
+- **Open Food Facts** — free, open food database. No auth required. Text search + barcode lookup. Wrapper: `lib/api/openfoodfacts.ts`
 - **Claude AI (Anthropic)** — photo recognition (multimodal) and NLP parsing ("2 eggs and toast" → nutrition JSON). Routes: `/api/nutrition/recognize`, `/api/nutrition/parse`
 
-> No Edamam, Spoonacular, Open Food Facts, or USDA integrations — FatSecret + Claude only.
+> FatSecret is no longer used. Open Food Facts handles both text search (`/api/nutrition/search`) and barcode lookup (`/api/nutrition/barcode`).
 
 ## Environment Variables
 

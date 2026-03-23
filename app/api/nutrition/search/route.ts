@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { searchFoods } from "@/lib/api/fatsecret";
+import { searchFoodsOFF } from "@/lib/api/openfoodfacts";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const foods = await searchFoods(query, 15);
+    const foods = await searchFoodsOFF(query, 15);
     return NextResponse.json({ foods });
   } catch (err) {
-    console.error("FatSecret search error:", err);
+    console.error("Food search error:", err);
     return NextResponse.json({ error: "Food search failed" }, { status: 500 });
   }
 }
