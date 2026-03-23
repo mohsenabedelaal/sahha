@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DB_PATH ?? "sahha.db",
+    url: "sahha.db",
   },
 });
