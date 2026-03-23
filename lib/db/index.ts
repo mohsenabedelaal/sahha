@@ -1,10 +1,9 @@
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
-const client = createClient({
-  url: process.env.DATABASE_URL ?? "file:sahha.db",
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-});
+const dbPath = process.env.DATABASE_PATH ?? "sahha.db";
+const sqlite = new Database(dbPath);
+sqlite.pragma("journal_mode = WAL");
 
-export const db = drizzle(client, { schema });
+export const db = drizzle(sqlite, { schema });
