@@ -7,6 +7,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   turbopack: {},
   allowedDevOrigins: ["192.168.0.*", "localhost"],
 };
