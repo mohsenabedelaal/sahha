@@ -3,8 +3,9 @@ import { defineConfig } from "drizzle-kit";
 export default defineConfig({
   schema: "./lib/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "turso",
   dbCredentials: {
-    url: "sahha.db",
+    url: process.env.DATABASE_URL ?? "file:sahha.db",
+    authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 });
